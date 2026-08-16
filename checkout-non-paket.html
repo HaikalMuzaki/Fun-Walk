@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <title>
+   Dies Natalis 40 Fasilkom UI
+  </title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <header class="header">
+   <div class="header-container">
+    <a aria-label="Dies Natalis 40 Fasilkom UI" class="logo" href="index.html">
+     <b>
+      40
+     </b>
+     <span>
+      DIES NATALIS
+      <br/>
+      <strong>
+       FASILKOM UI
+      </strong>
+      <small>
+       Empat Dekade Keunggulan Berdampak
+      </small>
+     </span>
+    </a>
+    <nav aria-label="Navigasi utama" class="navbar">
+     <a class="nav-link" href="index.html">
+      Home
+     </a>
+     <a class="nav-link" href="history.html">
+      History
+     </a>
+    </nav>
+    <div class="auth">
+     <a class="login-link" href="login.html">
+      Register/Login
+     </a>
+    </div>
+   </div>
+  </header>
+  <main class="checkout-page">
+   <section class="checkout-card">
+    <h1>
+     Non-Paket (hanya tiket)
+    </h1>
+    <form action="#" data-unit-price="50000" id="registration-form">
+     <div class="checkout-field">
+      <label for="id_full_name">
+       Nama Lengkap
+      </label>
+      <input id="id_full_name" type="text"/>
+     </div>
+     <div class="checkout-field">
+      <label for="id_whatsapp_number">
+       Nomor WhatsApp
+      </label>
+      <input id="id_whatsapp_number" type="tel"/>
+     </div>
+     <div class="checkout-field">
+      <label for="id_cohort_year">
+       Angkatan
+      </label>
+      <input id="id_cohort_year" type="number"/>
+     </div>
+     <div class="checkout-field">
+      <label for="id_study_program">
+       Program Studi
+      </label>
+      <select id="id_study_program">
+       <option>
+        Ilmu Komputer
+       </option>
+       <option>
+        Sistem Informasi
+       </option>
+      </select>
+     </div>
+     <div class="checkout-field">
+      <label for="id_ticket_quantity">
+       Jumlah Tiket
+      </label>
+      <input id="id_ticket_quantity" min="1" type="number" value="1"/>
+     </div>
+     <div class="checkout-total">
+      <span>
+       Total Harga
+      </span>
+      <strong id="total-price">
+       Rp50.000
+      </strong>
+     </div>
+     <button class="payment-button" type="button">
+      Continue to Payment
+     </button>
+    </form>
+   </section>
+  </main>
+  <footer aria-hidden="true" class="footer">
+  </footer>
+  <script src="js/app.js">
+  </script>
+ </body>
+</html>
+
