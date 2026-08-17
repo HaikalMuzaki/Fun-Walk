@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 User = get_user_model()
 
@@ -64,3 +65,30 @@ def history(request):
 def custom_logout(request):
     logout(request) # Menghapus sesi user
     return redirect('index')
+
+def mock_sso_login(request):
+    """
+    Fungsi tiruan (Mock) untuk bypass SSO UI selama Localhost belum di-whitelist.
+    """
+    # 1. Tentukan identitas akun dummy
+    dummy_username = "mahasiswa.dummy"
+    dummy_email = "mahasiswa.dummy@ui.ac.id"
+    
+    # 2. Cari atau buat user otomatis di database lokal
+    user, created = User.objects.get_or_create(
+        username=dummy_username,
+        defaults={'email': dummy_email}
+    )
+    
+    # Kalau user baru dibuat, set passwordnya agar tidak bisa dipakai login manual biasa
+    if created:
+        user.set_unusable_password()
+        user.save()
+        
+    # 3. Paksa login tanpa password (bypass)
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    
+    # 4. Ambil parameter 'next' dari URL (contoh: /checkout/alumni/). 
+    # Kalau tidak ada, default lemparkan ke halaman utama ('/')
+    next_url = request.GET.get('next', '/')
+    return redirect(next_url)
