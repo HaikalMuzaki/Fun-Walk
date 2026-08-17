@@ -46,7 +46,12 @@ class Ticket(models.Model):
     ]
     SIZE_CHOICES = [
         ('NONE', 'Tidak Ada Kaos'),
-        ('S', 'S'), ('M', 'M'), ('L', 'L'), ('XL', 'XL'), ('XXL', 'XXL'),
+        ('XS', 'XS'),
+        ('S', 'S'),
+        ('M', 'M'),
+        ('L', 'L'),
+        ('XL', 'XL'),
+        ('XXL+', 'XXL+'),
     ]
     
     # Relasi: 1 Transaksi bisa punya banyak Tiket (Pax)
@@ -57,14 +62,16 @@ class Ticket(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
 
     def save(self, *args, **kwargs):
-        # Auto-set harga berdasarkan pilihan paket
-        if self.package_type == 'ALUMNI_PACK':
-            self.price = 275000
-        elif self.package_type == 'STUDENT_PACK':
-            self.price = 175000
-        else:
-            self.price = 50000
-            self.tshirt_size = 'NONE' # Reset kaos jika cuma beli tiket
+        # Auto-set harga default berdasarkan pilihan paket, kecuali sudah diset eksplisit.
+        if not self.price:
+            if self.package_type == 'ALUMNI_PACK':
+                self.price = 275000
+            elif self.package_type == 'STUDENT_PACK':
+                self.price = 175000
+            else:
+                self.price = 50000
+        if self.package_type == 'TICKET_ONLY':
+            self.tshirt_size = 'NONE'
         super().save(*args, **kwargs)
 
 # --- 4. EXTRA INFO (CMS untuk Frontend) ---

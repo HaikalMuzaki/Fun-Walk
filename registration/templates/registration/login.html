@@ -35,9 +35,24 @@
         <a class="nav-link" href="{% url 'history' %}">History</a>
     </nav>
     <div class="auth">
+     {% if request.user.is_authenticated %}
+     <details class="auth-dropdown">
+      <summary class="auth-summary">
+       <span class="auth-email">
+        {{ request.user.email|default:request.user.username }}
+       </span>
+      </summary>
+      <div class="auth-menu">
+       <a class="logout-link" href="{% url 'logout' %}">
+        Log Out
+       </a>
+      </div>
+     </details>
+     {% else %}
      <a class="login-link" href="{% url 'login' %}">
       Register/Login
      </a>
+     {% endif %}
     </div>
    </div>
   </header>
@@ -123,16 +138,29 @@
          <span class="detail-separator">
           :
          </span>
-         <span class="detail-value">
-          Kampus Fasilkom UI
-          <br/>
-          Depok (Gedung Baru)
+         <span class="detail-value detail-value--wrap">
+          Kampus Fasilkom UI, Depok (Gedung Baru)
          </span>
         </div>
        </div>
-       <p class="detail-note">
-        *Notes : Registrasi ulang dibuka pukul 06.00 WIB
-       </p>
+       <div class="detail-highlights">
+        <div class="detail-highlight">
+         <span class="detail-highlight-label">
+          Peserta
+         </span>
+         <strong>
+          Mahasiswa &amp; Alumni Fasilkom UI
+         </strong>
+        </div>
+        <div class="detail-highlight">
+         <span class="detail-highlight-label">
+          Check-in
+         </span>
+         <strong>
+          Mulai dari 06.00 WIB
+         </strong>
+        </div>
+       </div>
       </article>
       <article class="package-card">
        <h2 class="package-title">
@@ -160,6 +188,9 @@
         </div>
         <div class="package-item">
          <div class="package-info">
+          <span class="package-badge">
+           SSO UI
+          </span>
           <h3 class="package-name">
            Paket Mahasiswa aktif
           </h3>
@@ -169,12 +200,20 @@
           <p class="package-description">
            Paket sudah termasuk Race Pack dan Kaos.
           </p>
-          <strong class="package-price">
-           Rp175.000
-          </strong>
+          <div class="package-price-group">
+           <span class="package-price-original">
+            Rp275.000
+           </span>
+           <strong class="package-price">
+            Rp175.000
+           </strong>
+          </div>
+          <p class="package-note">
+           *Diskon hanya untuk 1 akun mahasiswa
+          </p>
          </div>
          <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
-          Beli Paket Mahasiswa Aktif
+           Beli Paket Mahasiswa Aktif
          </a>
         </div>
         <div class="package-item">
@@ -200,7 +239,10 @@
       </article>
      </section>
     </main>
-    <footer aria-hidden="true" class="footer">
+    <footer class="footer">
+     <span>
+      Fasilkom UI
+     </span>
     </footer>
    </div>
    <section aria-labelledby="login-title" aria-modal="true" class="login-card" role="dialog">
@@ -212,7 +254,7 @@
      {% csrf_token %}
      
      <!-- Menangkap parameter URL agar redirect setelah login berhasil -->
-     <input type="hidden" name="next" value="{{ request.GET.next }}">
+     <input type="hidden" name="next" value="{{ next_url }}">
 
      <!-- Menampilkan pesan error (jika password salah, dll) -->
      {% if messages %}
@@ -234,7 +276,29 @@
       <label class="form-label" for="password">
        Password
       </label>
-      <input autocomplete="current-password" class="form-input" id="password" minlength="8" name="password" required="" type="password"/>
+      <div class="password-input-wrap">
+       <input autocomplete="current-password" class="form-input password-input" id="password" minlength="8" name="password" required="" type="password"/>
+       <button aria-controls="password" aria-label="Show password" class="password-toggle" id="password-toggle" type="button">
+        Show
+       </button>
+      </div>
+      <div aria-live="polite" class="password-requirements" id="password-requirements">
+       <p class="password-requirement" data-rule="length">
+        Minimal 8 karakter
+       </p>
+       <p class="password-requirement" data-rule="uppercase">
+        Ada huruf kapital, contoh: <code>A</code>
+       </p>
+       <p class="password-requirement" data-rule="lowercase">
+        Ada huruf kecil, contoh: <code>a</code>
+       </p>
+       <p class="password-requirement" data-rule="number">
+        Ada angka, contoh: <code>1</code>
+       </p>
+       <p class="password-requirement" data-rule="symbol">
+        Ada simbol, contoh: <code>;</code> <code>,</code> <code>.</code> <code>(</code> <code>)</code>
+       </p>
+      </div>
      </div>
      
      <!-- UBAH type="button" menjadi type="submit" -->
@@ -251,7 +315,7 @@
       <span class="divider-line">
       </span>
      </div>
-     <a class="sso-button" href="{% url 'sso_login' %}">
+     <a class="sso-button" href="{% if next_url %}{% url 'sso_login' %}?next={{ next_url|urlencode }}{% else %}{% url 'sso_login' %}{% endif %}">
       Continue with SSO
      </a>
     </form>
@@ -260,6 +324,43 @@
   <script src="{% static 'registration/js/app.js' %}">
   </script>
   <script>
+   const passwordInput = document.querySelector('#password');
+   const passwordToggle = document.querySelector('#password-toggle');
+   const passwordRequirements = document.querySelectorAll('.password-requirement');
+
+   if (passwordInput && passwordToggle) {
+     passwordToggle.addEventListener('click', () => {
+       const isHidden = passwordInput.type === 'password';
+       passwordInput.type = isHidden ? 'text' : 'password';
+       passwordToggle.textContent = isHidden ? 'Hide' : 'Show';
+       passwordToggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+     });
+   }
+
+   if (passwordInput && passwordRequirements.length) {
+     const passwordRules = {
+       length: (value) => value.length >= 8,
+       uppercase: (value) => /[A-Z]/.test(value),
+       lowercase: (value) => /[a-z]/.test(value),
+       number: (value) => /[0-9]/.test(value),
+       symbol: (value) => /[^A-Za-z0-9]/.test(value),
+     };
+
+     const updatePasswordRequirements = () => {
+       const value = passwordInput.value;
+
+       passwordRequirements.forEach((item) => {
+         const ruleName = item.dataset.rule;
+         const isValid = passwordRules[ruleName](value);
+         item.classList.toggle('is-valid', isValid);
+         item.classList.toggle('is-invalid', value.length > 0 && !isValid);
+       });
+     };
+
+     passwordInput.addEventListener('input', updatePasswordRequirements);
+     updatePasswordRequirements();
+   }
+
    document.querySelector('.login-page').addEventListener('click', function(event) {
      // Kalau yang diklik bukan form login-card atau elemen di dalamnya
      if (!event.target.closest('.login-card')) {

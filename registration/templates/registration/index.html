@@ -35,12 +35,34 @@
         <a class="nav-link" href="{% url 'history' %}">History</a>
     </nav>
     <div class="auth">
+     {% if request.user.is_authenticated %}
+     <details class="auth-dropdown">
+      <summary class="auth-summary">
+       <span class="auth-email">
+        {{ request.user.email|default:request.user.username }}
+       </span>
+      </summary>
+      <div class="auth-menu">
+       <a class="logout-link" href="{% url 'logout' %}">
+        Log Out
+       </a>
+      </div>
+     </details>
+     {% else %}
      <a class="login-link" href="{% url 'login' %}">
       Register/Login
      </a>
+     {% endif %}
     </div>
    </div>
   </header>
+  {% if messages %}
+  <div class="messages">
+   {% for message in messages %}
+   <p>{{ message }}</p>
+   {% endfor %}
+  </div>
+  {% endif %}
   <main class="home-page">
    <section class="dies-section">
     <div class="dies-title">
@@ -121,16 +143,29 @@
        <span class="detail-separator">
         :
        </span>
-       <span class="detail-value">
-        Kampus Fasilkom UI
-        <br/>
-        Depok (Gedung Baru)
+       <span class="detail-value detail-value--wrap">
+        Kampus Fasilkom UI, Depok (Gedung Baru)
        </span>
       </div>
      </div>
-     <p class="detail-note">
-      *Notes : Registrasi ulang dibuka pukul 06.00 WIB
-     </p>
+     <div class="detail-highlights">
+      <div class="detail-highlight">
+       <span class="detail-highlight-label">
+        Peserta
+       </span>
+       <strong>
+        Mahasiswa &amp; Alumni Fasilkom UI
+       </strong>
+      </div>
+      <div class="detail-highlight">
+       <span class="detail-highlight-label">
+        Registrasi Ulang
+       </span>
+       <strong>
+        Mulai dari 06.00 WIB
+       </strong>
+      </div>
+     </div>
     </article>
     <article class="package-card">
      <h2 class="package-title">
@@ -158,6 +193,9 @@
       </div>
       <div class="package-item">
        <div class="package-info">
+        <span class="package-badge">
+         SSO UI
+        </span>
         <h3 class="package-name">
          Paket Mahasiswa aktif
         </h3>
@@ -167,9 +205,17 @@
         <p class="package-description">
          Paket sudah termasuk Race Pack dan Kaos.
         </p>
-        <strong class="package-price">
-         Rp175.000
-        </strong>
+        <div class="package-price-group">
+         <span class="package-price-original">
+          Rp275.000
+         </span>
+         <strong class="package-price">
+          Rp175.000
+         </strong>
+        </div>
+        <p class="package-note">
+         *Diskon hanya untuk 1 akun mahasiswa
+        </p>
        </div>
        <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
         Beli Paket Mahasiswa Aktif
@@ -198,7 +244,10 @@
     </article>
    </section>
   </main>
-  <footer aria-hidden="true" class="footer">
+  <footer class="footer">
+   <span>
+    Fasilkom UI
+   </span>
   </footer>
   <script src="{% static 'registration/js/app.js' %}">
   </script>

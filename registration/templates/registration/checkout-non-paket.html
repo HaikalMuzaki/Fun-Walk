@@ -35,9 +35,24 @@
         <a class="nav-link" href="{% url 'history' %}">History</a>
     </nav>
     <div class="auth">
+     {% if request.user.is_authenticated %}
+     <details class="auth-dropdown">
+      <summary class="auth-summary">
+       <span class="auth-email">
+        {{ request.user.email|default:request.user.username }}
+       </span>
+      </summary>
+      <div class="auth-menu">
+       <a class="logout-link" href="{% url 'logout' %}">
+        Log Out
+       </a>
+      </div>
+     </details>
+     {% else %}
      <a class="login-link" href="{% url 'login' %}">
       Register/Login
      </a>
+     {% endif %}
     </div>
    </div>
   </header>
@@ -48,29 +63,36 @@
     </h1>
     <form method="POST" action="" data-unit-price="50000" id="registration-form">
     {% csrf_token %}
+    {% if messages %}
+     <div class="form-errors">
+      {% for message in messages %}
+       <p>{{ message }}</p>
+      {% endfor %}
+     </div>
+    {% endif %}
      <div class="checkout-field">
       <label for="id_full_name">
        Nama Lengkap
       </label>
-      <input id="id_full_name" type="text"/>
+      <input id="id_full_name" name="full_name" required="" type="text"/>
      </div>
      <div class="checkout-field">
       <label for="id_whatsapp_number">
        Nomor WhatsApp
       </label>
-      <input id="id_whatsapp_number" type="tel"/>
+      <input id="id_whatsapp_number" inputmode="numeric" name="whatsapp_number" pattern="[0-9]*" required="" type="tel"/>
      </div>
      <div class="checkout-field">
       <label for="id_cohort_year">
        Angkatan
       </label>
-      <input id="id_cohort_year" type="number"/>
+      <input id="id_cohort_year" name="cohort_year" required="" type="number"/>
      </div>
      <div class="checkout-field">
       <label for="id_study_program">
        Program Studi
       </label>
-      <select id="id_study_program">
+      <select id="id_study_program" name="study_program">
        <option>
         Ilmu Komputer
        </option>
@@ -83,7 +105,7 @@
       <label for="id_ticket_quantity">
        Jumlah Tiket
       </label>
-      <input id="id_ticket_quantity" min="1" type="number" value="1"/>
+      <input id="id_ticket_quantity" min="1" name="ticket_quantity" required="" type="number" value="1"/>
      </div>
      <div class="checkout-total">
       <span>
@@ -93,13 +115,16 @@
        Rp50.000
       </strong>
      </div>
-     <button class="payment-button" type="button">
+     <button class="payment-button" type="submit">
       Continue to Payment
      </button>
     </form>
    </section>
   </main>
-  <footer aria-hidden="true" class="footer">
+  <footer class="footer">
+   <span>
+    Fasilkom UI
+   </span>
   </footer>
   <script src="{% static 'registration/js/app.js' %}">
   </script>

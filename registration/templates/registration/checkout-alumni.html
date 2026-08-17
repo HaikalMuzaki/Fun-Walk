@@ -35,9 +35,24 @@
         <a class="nav-link" href="{% url 'history' %}">History</a>
     </nav>
     <div class="auth">
+     {% if request.user.is_authenticated %}
+     <details class="auth-dropdown">
+      <summary class="auth-summary">
+       <span class="auth-email">
+        {{ request.user.email|default:request.user.username }}
+       </span>
+      </summary>
+      <div class="auth-menu">
+       <a class="logout-link" href="{% url 'logout' %}">
+        Log Out
+       </a>
+      </div>
+     </details>
+     {% else %}
      <a class="login-link" href="{% url 'login' %}">
       Register/Login
      </a>
+     {% endif %}
     </div>
    </div>
   </header>
@@ -48,34 +63,159 @@
     </h1>
     <form method="POST" action="" data-unit-price="275000" id="registration-form">
     {% csrf_token %}
+    {% if messages %}
+     <div class="form-errors">
+      {% for message in messages %}
+       <p>{{ message }}</p>
+      {% endfor %}
+     </div>
+    {% endif %}
      <div class="checkout-field">
       <label for="id_full_name">
        Nama Lengkap
       </label>
-      <input id="id_full_name" type="text"/>
+      <input id="id_full_name" name="full_name" required="" type="text"/>
      </div>
      <div class="checkout-field">
-      <label for="id_whatsapp_number">
+     <label for="id_whatsapp_number">
        Nomor WhatsApp
       </label>
-      <input id="id_whatsapp_number" type="tel"/>
+      <input id="id_whatsapp_number" inputmode="numeric" name="whatsapp_number" pattern="[0-9]*" required="" type="tel"/>
      </div>
      <div class="checkout-field">
       <label for="id_cohort_year">
        Angkatan
       </label>
-      <input id="id_cohort_year" type="number"/>
+      <select id="id_cohort_year" name="cohort_year">
+       <option>
+        1985
+       </option>
+       <option>
+        1986
+       </option>
+       <option>
+        1987
+       </option>
+       <option>
+        1988
+       </option>
+       <option>
+        1989
+       </option>
+       <option>
+        1990
+       </option>
+       <option>
+        1991
+       </option>
+       <option>
+        1992
+       </option>
+       <option>
+        1993
+       </option>
+       <option>
+        1994
+       </option>
+       <option>
+        1995
+       </option>
+       <option>
+        1996
+       </option>
+       <option>
+        1997
+       </option>
+       <option>
+        1998
+       </option>
+       <option>
+        1999
+       </option>
+       <option>
+        2000
+       </option>
+       <option>
+        2001
+       </option>
+       <option>
+        2002
+       </option>
+       <option>
+        2003
+       </option>
+       <option>
+        2004
+       </option>
+       <option>
+        2005
+       </option>
+       <option>
+        2006
+       </option>
+       <option>
+        2007
+       </option>
+       <option>
+        2008
+       </option>
+       <option>
+        2009
+       </option>
+       <option>
+        2010
+       </option>
+       <option>
+        2011
+       </option>
+       <option>
+        2012
+       </option>
+       <option>
+        2013
+       </option>
+       <option>
+        2014
+       </option>
+       <option>
+        2015
+       </option>
+       <option>
+        2016
+       </option>
+       <option>
+        2017
+       </option>
+       <option>
+        2018
+       </option>
+       <option>
+        2019
+       </option>
+       <option>
+        2020
+       </option>
+       <option>
+        2021
+       </option>
+       <option>
+        2022
+       </option>
+      </select>
      </div>
      <div class="checkout-field">
       <label for="id_study_program">
        Program Studi
       </label>
-      <select id="id_study_program">
+      <select id="id_study_program" name="study_program">
        <option>
         Ilmu Komputer
        </option>
        <option>
         Sistem Informasi
+       </option>
+       <option>
+        Kelas Internasional
        </option>
       </select>
      </div>
@@ -83,7 +223,23 @@
       <label for="id_ticket_quantity">
        Jumlah Tiket
       </label>
-      <input id="id_ticket_quantity" min="1" type="number" value="1"/>
+      <select id="id_ticket_quantity" name="ticket_quantity">
+       <option selected="" value="1">
+        1
+       </option>
+       <option value="2">
+        2
+       </option>
+       <option value="3">
+        3
+       </option>
+       <option value="4">
+        4
+       </option>
+       <option value="5">
+        5
+       </option>
+      </select>
      </div>
      <div aria-label="Panduan ukuran baju" class="size-chart">
       <table>
@@ -170,30 +326,32 @@
        </tbody>
       </table>
      </div>
-     <div class="checkout-field">
-      <label for="id_shirt_size">
-       Ukuran Kaos
-      </label>
-      <select id="id_shirt_size">
-       <option>
-        XS
-       </option>
-       <option>
-        S
-       </option>
-       <option selected="">
-        M
-       </option>
-       <option>
-        L
-       </option>
-       <option>
-        XL
-       </option>
-       <option>
-        XXL+
-       </option>
-      </select>
+     <div id="shirt-size-fields">
+      <div class="checkout-field">
+       <label for="id_shirt_size_1">
+        Ukuran Kaos 1
+       </label>
+       <select id="id_shirt_size_1" name="shirt_size_1">
+        <option>
+         XS
+        </option>
+        <option>
+         S
+        </option>
+        <option selected="">
+         M
+        </option>
+        <option>
+         L
+        </option>
+        <option>
+         XL
+        </option>
+        <option>
+         XXL+
+        </option>
+       </select>
+      </div>
      </div>
      <div class="checkout-total">
       <span>
@@ -203,13 +361,16 @@
        Rp275.000
       </strong>
      </div>
-     <button class="payment-button" type="button">
+     <button class="payment-button" type="submit">
       Continue to Payment
      </button>
     </form>
    </section>
   </main>
-  <footer aria-hidden="true" class="footer">
+  <footer class="footer">
+   <span>
+    Fasilkom UI
+   </span>
   </footer>
   <script src="{% static 'registration/js/app.js' %}">
   </script>

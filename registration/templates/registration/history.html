@@ -35,65 +35,101 @@
         <a class="nav-link" href="{% url 'history' %}">History</a>
     </nav>
     <div class="auth">
+     {% if request.user.is_authenticated %}
+     <details class="auth-dropdown">
+      <summary class="auth-summary">
+       <span class="auth-email">
+        {{ request.user.email|default:request.user.username }}
+       </span>
+      </summary>
+      <div class="auth-menu">
+       <a class="logout-link" href="{% url 'logout' %}">
+        Log Out
+       </a>
+      </div>
+     </details>
+     {% else %}
      <a class="login-link" href="{% url 'login' %}">
       Register/Login
      </a>
+     {% endif %}
     </div>
    </div>
   </header>
-  <main class="history-page">
-   <div class="history-heading">
+  <main class="history-section">
+   {% if history_items %}
+   <div class="history-list">
+    {% for item in history_items %}
+    <article class="history-card">
+     <h2 class="history-title">
+      {{ item.package_name }}
+     </h2>
+     <div class="status {{ item.status_class }}">
+      {{ item.status_label }}
+     </div>
+     <div class="history-detail">
+      <div class="detail-row">
+       <span class="detail-label">
+        Nama Lengkap
+       </span>
+       <span class="detail-separator">
+        :
+       </span>
+       <span class="detail-value">
+        {{ item.attendee_name }}
+       </span>
+      </div>
+      <div class="detail-row">
+       <span class="detail-label">
+        Jumlah Tiket
+       </span>
+       <span class="detail-separator">
+        :
+       </span>
+       <span class="detail-value">
+        {{ item.ticket_quantity }}
+       </span>
+      </div>
+      {% if item.has_tshirt_sizes %}
+      <div class="detail-row">
+       <span class="detail-label">
+        Ukuran Kaos
+       </span>
+       <span class="detail-separator">
+        :
+       </span>
+       <span class="detail-value">
+        {{ item.tshirt_sizes }}
+       </span>
+      </div>
+      {% endif %}
+     </div>
+     <div class="history-footer">
+      <span class="history-date">
+       {{ item.created_at }}
+      </span>
+      <span class="history-price">
+       {{ item.total_amount }}
+      </span>
+     </div>
+    </article>
+    {% endfor %}
+   </div>
+   {% else %}
+   <div class="history-empty">
     <h1>
-     History Pembelian
+     0 Transaksi
     </h1>
-    <a href="#">
-     Download Excel Tim Pemasaran
-    </a>
+    <p>
+     Riwayat pembelian akan muncul ketika Anda melakukan pembayaran.
+    </p>
    </div>
-   <div class="history-table-wrap">
-    <table class="history-table">
-     <thead>
-      <tr>
-       <th>
-        Paket
-       </th>
-       <th>
-        Nama
-       </th>
-       <th>
-        Tiket
-       </th>
-       <th>
-        Total
-       </th>
-       <th>
-        Tanggal
-       </th>
-      </tr>
-     </thead>
-     <tbody>
-      <tr>
-       <td>
-        Paket Alumni
-       </td>
-       <td>
-        Contoh Pengguna
-       </td>
-       <td>
-        1
-       </td>
-       <td>
-        Rp275.000
-       </td>
-       <td>
-        16 Agu 2026 20:00
-       </td>
-      </tr>
-     </tbody>
-    </table>
-   </div>
+   {% endif %}
   </main>
-  <footer aria-hidden="true" class="footer">
+  <footer class="footer">
+   <span>
+    Fasilkom UI
+   </span>
   </footer>
   <script src="{% static 'registration/js/app.js' %}">
   </script>
