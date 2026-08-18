@@ -11,4 +11,5 @@ urlpatterns = [
     path('checkout/mahasiswa/', views.checkout_mahasiswa, name='checkout_mahasiswa'),
     path('checkout/tiket-saja/', views.checkout_non_paket, name='checkout_non_paket'),
     path('history/', views.history, name='history'),
+    path('payment/', views.payment_page, name='payment_page'),
 ]

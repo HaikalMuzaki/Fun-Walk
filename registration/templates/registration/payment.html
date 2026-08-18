@@ -1,0 +1,332 @@
+{% extends 'registration/base.html' %}
+{% load static %}
+
+{% block title %}Pembayaran - Dies Natalis 40 Fasilkom UI{% endblock %}
+
+{% block content %}
+<style>
+  .payment-wrapper {
+    background-color: #f8fafc;
+    padding: 40px 20px;
+    min-height: calc(100vh - 160px);
+  }
+  .payment-container {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 32px;
+    font-family: 'Poppins', sans-serif;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: #1e293b;
+  }
+  .step-circle {
+    background-color: #0353a4;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .method-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .method-card.active {
+    border-color: #0353a4;
+    box-shadow: 0 4px 14px rgba(3, 83, 164, 0.08);
+  }
+  .method-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .method-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #0f172a;
+  }
+  .method-label input[type="radio"] {
+    accent-color: #0353a4;
+    width: 18px;
+    height: 18px;
+  }
+  .qris-body {
+    display: block;
+    text-align: center;
+    padding-top: 24px;
+  }
+  .qr-placeholder {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+  }
+  .qr-placeholder img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+  .transfer-body {
+    display: none;
+    margin-top: 16px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+  }
+  .bank-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .bank-code {
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .bank-bca { color: #0056b3; }
+  .bank-bni { color: #f26522; }
+  .bank-mandiri { color: #0f4c81; }
+  .badge-auto {
+    background: #e0f2fe;
+    color: #0284c7;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .summary-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .summary-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+    color: #0f172a;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  .summary-row.subtext {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: -6px;
+    margin-bottom: 16px;
+  }
+  .summary-row.discount {
+    color: #16a34a;
+    font-weight: 500;
+  }
+  .total-container {
+    border-top: 1px dashed #cbd5e1;
+    margin-top: 16px;
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .total-amount {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0353a4;
+  }
+  .btn-submit-pay {
+    background: #0353a4;
+    color: #ffffff;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background 0.2s ease;
+  }
+  .btn-submit-pay:hover {
+    background: #023e8a;
+  }
+  .info-note {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.8rem;
+    color: #0369a1;
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  @media (max-width: 768px) {
+    .payment-container { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="payment-wrapper">
+  <div class="payment-container">
+    <!-- Kolom Kiri: Metode Pembayaran -->
+    <div class="left-section">
+      <div class="section-header">
+        <span class="step-circle">1</span>
+        <span>Metode Pembayaran</span>
+      </div>
+
+      <form action="#" method="POST" id="form-pembayaran">
+        {% csrf_token %}
+        <input type="hidden" name="ticket_type" value="{{ ticket_type }}">
+        <input type="hidden" name="total_bayar" value="{{ total_bayar }}">
+
+        <!-- Opsi QRIS -->
+        <div class="method-card active" id="card-qris" onclick="selectPaymentMethod('qris')">
+          <div class="method-header">
+            <label class="method-label">
+              <input type="radio" name="payment_method" value="qris" checked>
+              <span>QRIS</span>
+            </label>
+          </div>
+          <div class="qris-body" id="qris-content">
+            <div class="qr-placeholder">
+              <span style="color: #94a3b8; font-size: 0.85rem;">[QRIS Display]</span>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin: 0;">
+              Scan QR code di atas menggunakan aplikasi e-wallet atau mobile banking Anda
+            </p>
+          </div>
+        </div>
+
+        <!-- Opsi Transfer Bank -->
+        <div class="method-card" id="card-transfer" onclick="selectPaymentMethod('transfer')">
+          <div class="method-header">
+            <label class="method-label">
+              <input type="radio" name="payment_method" value="transfer">
+              <span>Transfer Bank</span>
+            </label>
+            <span style="color: #64748b; font-size: 0.8rem;">&#9660;</span>
+          </div>
+          <div class="transfer-body" id="transfer-content">
+            <div class="bank-item">
+              <div>
+                <span class="bank-code bank-bca">BCA</span>
+                <span style="margin-left: 8px; font-size: 0.85rem; color: #334155;">Bank Central Asia</span>
+              </div>
+              <span class="badge-auto">Otomatis</span>
+            </div>
+            <div class="bank-item">
+              <div>
+                <span class="bank-code bank-bni">BNI</span>
+                <span style="margin-left: 8px; font-size: 0.85rem; color: #334155;">Bank Negara Indonesia</span>
+              </div>
+            </div>
+            <div class="bank-item">
+              <div>
+                <span class="bank-code bank-mandiri">MANDIRI</span>
+                <span style="margin-left: 8px; font-size: 0.85rem; color: #334155;">Bank Mandiri</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kolom Kanan: Ringkasan Pesanan -->
+      <div class="right-section">
+        <div class="section-header">
+          <span class="step-circle">2</span>
+          <span>Detail Pembayaran</span>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-title">Ringkasan Pesanan</div>
+
+          <div class="summary-row" style="font-weight: 600; color: #0f172a;">
+            <span>Registrasi Dies Natalis 40</span>
+            <span>Rp {{ subtotal|floatformat:0 }}</span>
+          </div>
+          <div class="summary-row subtext">
+            <span>Kategori: {{ ticket_type }}</span>
+          </div>
+
+
+          <div class="total-container">
+            <div class="total-amount">Rp {{ total_bayar|floatformat:0 }}</div>
+            <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Total Bayar</span>
+          </div>
+
+          <button type="submit" class="btn-submit-pay">
+            Bayar Sekarang
+          </button>
+          
+          <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; margin-top: 12px;">
+            Secure Encrypted Payment
+          </div>
+        </div>
+
+        <div class="info-note">
+          <span>&#9432;</span>
+          <span>Pembayaran akan diverifikasi secara otomatis dalam waktu maksimal 5 menit.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function selectPaymentMethod(method) {
+    const cardQris = document.getElementById('card-qris');
+    const cardTransfer = document.getElementById('card-transfer');
+    const qrisContent = document.getElementById('qris-content');
+    const transferContent = document.getElementById('transfer-content');
+    const radioQris = document.querySelector('input[value="qris"]');
+    const radioTransfer = document.querySelector('input[value="transfer"]');
+
+    if (method === 'qris') {
+      cardQris.classList.add('active');
+      cardTransfer.classList.remove('active');
+      qrisContent.style.display = 'block';
+      transferContent.style.display = 'none';
+      radioQris.checked = true;
+    } else {
+      cardTransfer.classList.add('active');
+      cardQris.classList.remove('active');
+      transferContent.style.display = 'block';
+      qrisContent.style.display = 'none';
+      radioTransfer.checked = true;
+    }
+  }
+</script>
+{% endblock %}

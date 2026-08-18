@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from email_validator import EmailNotValidError, validate_email as validate_registration_email
 from requests.exceptions import RequestException
+import random
 
 from .models import Ticket, Transaction
 from .sso_compat import ensure_django_six_compat
@@ -458,3 +459,35 @@ def history(request):
 def custom_logout(request):
     logout(request) # Menghapus sesi user
     return redirect('index')
+
+def payment_page(request):
+    # Mapping harga sesuai rules
+    PRICE_MAP = {
+        'Paket Alumni': 275000,
+        'Paket Mahasiswa Aktif': 175000,
+        'Non-Paket': 50000
+    }
+
+    if request.method == 'POST':
+        ticket_type = request.POST.get('ticket_type', 'Paket Alumni')
+        quantity = int(request.POST.get('quantity', 1))
+    else:
+        # Fallback testing
+        ticket_type = 'Paket Alumni'
+        quantity = 1
+
+    # Kalkulasi
+    base_price = PRICE_MAP.get(ticket_type, 0)
+    
+    subtotal = base_price * quantity
+    total_bayar = subtotal
+
+    context = {
+        'ticket_type': ticket_type,
+        'base_price': base_price,
+        'quantity': quantity,
+        'subtotal': subtotal,
+        'total_bayar': total_bayar,
+    }
+    
+    return render(request, 'registration/payment.html', context)

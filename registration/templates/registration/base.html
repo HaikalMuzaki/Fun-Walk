@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <title>{% block title %}Dies Natalis 40 Fasilkom UI{% endblock %}</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="{% static 'registration/css/style.css' %}" rel="stylesheet"/>
+</head>
+<body>
+  <header class="header">
+    <div class="header-container">
+      <a aria-label="Dies Natalis 40 Fasilkom UI" class="logo" href="{% url 'index' %}">
+        <img alt="Dies Natalis 40 Fasilkom UI" class="logo-image" src="{% static 'registration/assets/logo.png' %}?v=20260818"/>
+      </a>
+      <nav aria-label="Navigasi utama" class="navbar">
+        <a class="nav-link" href="{% url 'index' %}">Home</a>
+        <a class="nav-link" href="{% url 'history' %}">History</a>
+      </nav>
+      <div class="auth">
+        {% if request.user.is_authenticated %}
+        <details class="auth-dropdown">
+          <summary class="auth-summary">
+            <span class="auth-email">
+              {{ request.user.email|default:request.user.username }}
+            </span>
+          </summary>
+          <div class="auth-menu">
+            <a class="logout-link" href="{% url 'logout' %}">
+              Log Out
+            </a>
+          </div>
+        </details>
+        {% else %}
+        <a class="login-link" href="{% url 'login' %}">
+          Register/Login
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+    <p>{{ message }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Area Konten Dinamis -->
+  {% block content %}
+  {% endblock %}
+
+  <footer class="footer">
+    <span>
+      Fasilkom UI
+    </span>
+  </footer>
+
+  <script src="{% static 'registration/js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,244 +1,192 @@
+{% extends 'registration/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="id">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1" name="viewport"/>
-  <title>
-   Dies Natalis 40 Fasilkom UI
-  </title>
-  <link href="https://fonts.googleapis.com" rel="preconnect"/>
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <link href="{% static 'registration/css/style.css' %}" rel="stylesheet"/>
- </head>
- <body>
-  <header class="header">
-   <div class="header-container">
-    <a aria-label="Dies Natalis 40 Fasilkom UI" class="logo" href="{% url 'index' %}">
-     <img alt="Dies Natalis 40 Fasilkom UI" class="logo-image" src="{% static 'registration/assets/logo.png' %}?v=20260818"/>
-    </a>
-    <nav aria-label="Navigasi utama" class="navbar">
-        <a class="nav-link" href="{% url 'index' %}">Home</a>
-        <a class="nav-link" href="{% url 'history' %}">History</a>
-    </nav>
-    <div class="auth">
-     {% if request.user.is_authenticated %}
-     <details class="auth-dropdown">
-      <summary class="auth-summary">
-       <span class="auth-email">
-        {{ request.user.email|default:request.user.username }}
-       </span>
-      </summary>
-      <div class="auth-menu">
-       <a class="logout-link" href="{% url 'logout' %}">
-        Log Out
-       </a>
-      </div>
-     </details>
-     {% else %}
-     <a class="login-link" href="{% url 'login' %}">
-      Register/Login
-     </a>
-     {% endif %}
-    </div>
-   </div>
-  </header>
-  {% if messages %}
-  <div class="messages">
-   {% for message in messages %}
-   <p>{{ message }}</p>
-   {% endfor %}
-  </div>
-  {% endif %}
-  <main class="home-page">
-   <section class="dies-section">
+
+{% block title %}Dies Natalis 40 Fasilkom UI - Home{% endblock %}
+
+{% block content %}
+<main class="home-page">
+  <section class="dies-section">
     <div class="dies-title">
-     <h1>
-      DIES
-      <br/>
-      NATALIS
-      <br/>
-      FASILKOM
-      <br/>
-      UI KE-40
-     </h1>
+      <h1>
+        DIES
+        <br/>
+        NATALIS
+        <br/>
+        FASILKOM
+        <br/>
+        UI KE-40
+      </h1>
     </div>
     <div class="dies-content">
-     <p class="dies-description">
-      Dalam rangka memperingati Dies Natalis ke-40 Fasilkom UI, kami menyelenggarakan acara yang dapat diikuti, baik oleh mahasiswa Fasilkom UI maupun alumni Fasilkom UI. Rangkaian acara ini terdiri atas:
-     </p>
-     <div class="event-list">
-      <div class="event-card walk">
-       <div class="event-name">
-        Fun Walk
-       </div>
-      </div>
-      <div class="event-card games">
-       <div class="event-name">
-        Carnival
-        <br/>
-        Games
-       </div>
-      </div>
-      <div class="event-card health">
-       <div class="event-name">
-        Check
-        <br/>
-        Kesehatan
-       </div>
-      </div>
-      <div class="event-card star">
-       <div class="event-name">
-        Guest Star
-       </div>
-      </div>
-     </div>
-    </div>
-   </section>
-   <section class="package-section">
-    <article class="detail-card">
-     <h2 class="detail-title">
-      Detail Acara
-     </h2>
-     <div class="detail-content">
-      <div class="detail-item">
-       <span class="detail-label">
-        Tanggal
-       </span>
-       <span class="detail-separator">
-        :
-       </span>
-       <span class="detail-value">
-        Minggu, 24 Agustus 2026
-       </span>
-      </div>
-      <div class="detail-item">
-       <span class="detail-label">
-        Waktu
-       </span>
-       <span class="detail-separator">
-        :
-       </span>
-       <span class="detail-value">
-        06.30 &nbsp; &ndash; &nbsp; Selesai
-       </span>
-      </div>
-      <div class="detail-item">
-       <span class="detail-label">
-        Lokasi
-       </span>
-       <span class="detail-separator">
-        :
-       </span>
-       <span class="detail-value detail-value--wrap">
-        Kampus Fasilkom UI, Depok (Gedung Baru)
-       </span>
-      </div>
-     </div>
-     <div class="detail-highlights">
-      <div class="detail-highlight">
-       <span class="detail-highlight-label">
-        Peserta
-       </span>
-       <strong>
-        Mahasiswa &amp; Alumni Fasilkom UI
-       </strong>
-      </div>
-      <div class="detail-highlight">
-       <span class="detail-highlight-label">
-        Registrasi Ulang
-       </span>
-       <strong>
-        Mulai dari 06.00 WIB
-       </strong>
-      </div>
-     </div>
-    </article>
-    <article class="package-card">
-     <h2 class="package-title">
-      Kategori Paket
-     </h2>
-     <div class="package-list">
-      <div class="package-item">
-       <div class="package-info">
-        <h3 class="package-name">
-         Paket Alumni
-        </h3>
-        <p class="package-description">
-         Hanya dapat dibeli oleh Alumni Fasilkom UI hingga angkatan 2022.
-        </p>
-        <p class="package-description">
-         Paket sudah termasuk Race Pack dan Kaos.
-        </p>
-        <strong class="package-price">
-         Rp275.000
-        </strong>
-       </div>
-       <a class="package-button" href="{% url 'checkout_alumni' %}">
-        Beli Paket Alumni
-       </a>
-      </div>
-      <div class="package-item package-item--student">
-       <span class="package-badge">
-        SSO UI Only
-       </span>
-       <div class="package-info">
-        <h3 class="package-name">
-         Paket Mahasiswa aktif
-        </h3>
-        <p class="package-description">
-         Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.
-        </p>
-        <p class="package-description">
-         Paket sudah termasuk Race Pack dan Kaos.
-        </p>
-        <div class="package-price-group">
-         <span class="package-price-original">
-          Rp275.000
-         </span>
-         <strong class="package-price">
-          Rp175.000
-         </strong>
+      <p class="dies-description">
+        Dalam rangka memperingati Dies Natalis ke-40 Fasilkom UI, kami menyelenggarakan acara yang dapat diikuti, baik oleh mahasiswa Fasilkom UI maupun alumni Fasilkom UI. Rangkaian acara ini terdiri atas:
+      </p>
+      <div class="event-list">
+        <div class="event-card walk">
+          <div class="event-name">
+            Fun Walk
+          </div>
         </div>
-        <p class="package-note">
-         *Diskon hanya untuk 1 akun mahasiswa
-        </p>
-       </div>
-       <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
-        Beli Paket Mahasiswa Aktif
-       </a>
+        <div class="event-card games">
+          <div class="event-name">
+            Carnival
+            <br/>
+            Games
+          </div>
+        </div>
+        <div class="event-card health">
+          <div class="event-name">
+            Check
+            <br/>
+            Kesehatan
+          </div>
+        </div>
+        <div class="event-card star">
+          <div class="event-name">
+            Guest Star
+          </div>
+        </div>
       </div>
-      <div class="package-item">
-       <div class="package-info">
-        <h3 class="package-name">
-         Non-Paket (hanya tiket)
-        </h3>
-        <p class="package-description">
-         Dapat dibeli oleh seluruh civitas Fasilkom UI, mulai dari alumni hingga mahasiswa aktif.
-        </p>
-        <p class="package-description">
-         Tidak termasuk race pack dan kaos.
-        </p>
-        <strong class="package-price">
-         Rp50.000
-        </strong>
-       </div>
-       <a class="package-button" href="{% url 'checkout_non_paket' %}">
-        Beli Non-Paket
-       </a>
-      </div>
-     </div>
-    </article>
-   </section>
-  </main>
-  <footer class="footer">
-   <span>
-    Fasilkom UI
-   </span>
-  </footer>
-  <script src="{% static 'registration/js/app.js' %}">
-  </script>
- </body>
-</html>
+    </div>
+  </section>
 
+  <section class="package-section">
+    <article class="detail-card">
+      <h2 class="detail-title">
+        Detail Acara
+      </h2>
+      <div class="detail-content">
+        <div class="detail-item">
+          <span class="detail-label">
+            Tanggal
+          </span>
+          <span class="detail-separator">
+            :
+          </span>
+          <span class="detail-value">
+            Minggu, 24 Agustus 2026
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">
+            Waktu
+          </span>
+          <span class="detail-separator">
+            :
+          </span>
+          <span class="detail-value">
+            06.30 &nbsp; &ndash; &nbsp; Selesai
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">
+            Lokasi
+          </span>
+          <span class="detail-separator">
+            :
+          </span>
+          <span class="detail-value detail-value--wrap">
+            Kampus Fasilkom UI, Depok (Gedung Baru)
+          </span>
+        </div>
+      </div>
+      <div class="detail-highlights">
+        <div class="detail-highlight">
+          <span class="detail-highlight-label">
+            Peserta
+          </span>
+          <strong>
+            Mahasiswa &amp; Alumni Fasilkom UI
+          </strong>
+        </div>
+        <div class="detail-highlight">
+          <span class="detail-highlight-label">
+            Registrasi Ulang
+          </span>
+          <strong>
+            Mulai dari 06.00 WIB
+          </strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="package-card">
+      <h2 class="package-title">
+        Kategori Paket
+      </h2>
+      <div class="package-list">
+        <div class="package-item">
+          <div class="package-info">
+            <h3 class="package-name">
+              Paket Alumni
+            </h3>
+            <p class="package-description">
+              Hanya dapat dibeli oleh Alumni Fasilkom UI hingga angkatan 2022.
+            </p>
+            <p class="package-description">
+              Paket sudah termasuk Race Pack dan Kaos.
+            </p>
+            <strong class="package-price">
+              Rp275.000
+            </strong>
+          </div>
+          <a class="package-button" href="{% url 'checkout_alumni' %}">
+            Beli Paket Alumni
+          </a>
+        </div>
+
+        <div class="package-item package-item--student">
+          <span class="package-badge">
+            SSO UI Only
+          </span>
+          <div class="package-info">
+            <h3 class="package-name">
+              Paket Mahasiswa aktif
+            </h3>
+            <p class="package-description">
+              Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.
+            </p>
+            <p class="package-description">
+              Paket sudah termasuk Race Pack dan Kaos.
+            </p>
+            <div class="package-price-group">
+              <span class="package-price-original">
+                Rp275.000
+              </span>
+              <strong class="package-price">
+                Rp175.000
+              </strong>
+            </div>
+            <p class="package-note">
+              *Diskon hanya untuk 1 akun mahasiswa
+            </p>
+          </div>
+          <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
+            Beli Paket Mahasiswa Aktif
+          </a>
+        </div>
+
+        <div class="package-item">
+          <div class="package-info">
+            <h3 class="package-name">
+              Non-Paket (hanya tiket)
+            </h3>
+            <p class="package-description">
+              Dapat dibeli oleh seluruh civitas Fasilkom UI, mulai dari alumni hingga mahasiswa aktif.
+            </p>
+            <p class="package-description">
+              Tidak termasuk race pack dan kaos.
+            </p>
+            <strong class="package-price">
+              Rp50.000
+            </strong>
+          </div>
+          <a class="package-button" href="{% url 'checkout_non_paket' %}">
+            Beli Non-Paket
+          </a>
+        </div>
+      </div>
+    </article>
+  </section>
+</main>
+{% endblock %}
