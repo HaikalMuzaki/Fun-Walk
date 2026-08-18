@@ -1,15 +1,28 @@
 from decimal import Decimal
+from xml.etree.ElementTree import ParseError
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from email_validator import EmailNotValidError, validate_email as validate_registration_email
+from requests.exceptions import RequestException
 
 from .models import Ticket, Transaction
+from .sso_compat import ensure_django_six_compat
+
+ensure_django_six_compat()
+
+from cas import CASError
+from django_sso_ui.utils import (
+    authenticate as sso_authenticate,
+    get_cas_client,
+    get_service_url,
+)
 
 User = get_user_model()
 
@@ -71,6 +84,16 @@ def _get_password_requirement_errors(password):
     return errors
 
 
+def _get_first_non_empty_value(data, *keys):
+    for key in keys:
+        value = data.get(key)
+        if isinstance(value, str):
+            value = value.strip()
+        if value:
+            return value
+    return ''
+
+
 def _get_email_registration_error(email):
     normalized_email = email.strip().lower()
     if not normalized_email.endswith('@gmail.com'):
@@ -89,6 +112,101 @@ def _get_email_registration_error(email):
         return 'Email registrasi harus menggunakan akun Gmail (@gmail.com).', ''
 
     return '', validated_email.normalized
+
+
+def _build_sso_identity(sso_profile):
+    attributes = sso_profile.get('attributes') or {}
+    username = (sso_profile.get('username') or '').strip().lower()
+    if not username:
+        raise ValueError('Profil SSO UI tidak valid.')
+
+    email = _get_first_non_empty_value(attributes, 'email', 'mail', 'ui_email')
+    email = (email or (username if '@' in username else f'{username}@ui.ac.id')).strip().lower()
+
+    npm = _get_first_non_empty_value(
+        attributes,
+        'npm',
+        'student_id',
+        'studentid',
+        'kode_identitas',
+        'nomor_induk',
+    )
+    if not npm and username.isdigit():
+        npm = username
+
+    full_name = _get_first_non_empty_value(attributes, 'nama', 'displayName', 'cn', 'name')
+
+    return {
+        'username': username,
+        'email': email,
+        'npm': npm,
+        'full_name': full_name,
+    }
+
+
+def _sync_sso_student_user(sso_profile):
+    identity = _build_sso_identity(sso_profile)
+    username = identity['username']
+    email = identity['email']
+
+    user = User.objects.filter(username__iexact=username).first()
+    if user is None:
+        user = User.objects.filter(email__iexact=email).first()
+
+    created = user is None
+    if created:
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            user_type='STUDENT',
+            npm=identity['npm'] or None,
+        )
+        user.set_unusable_password()
+        update_fields = ['password']
+    else:
+        update_fields = []
+
+    if user.email.lower() != email:
+        user.email = email
+        update_fields.append('email')
+    if user.user_type != 'STUDENT':
+        user.user_type = 'STUDENT'
+        update_fields.append('user_type')
+    if identity['npm'] and user.npm != identity['npm']:
+        user.npm = identity['npm']
+        update_fields.append('npm')
+
+    if identity['full_name']:
+        name_parts = identity['full_name'].split(None, 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        if user.first_name != first_name:
+            user.first_name = first_name
+            update_fields.append('first_name')
+        if user.last_name != last_name:
+            user.last_name = last_name
+            update_fields.append('last_name')
+
+    if update_fields:
+        user.save(update_fields=list(dict.fromkeys(update_fields)))
+
+    return user
+
+
+def _complete_sso_login(request, sso_profile):
+    if not sso_profile:
+        messages.error(request, 'Login SSO UI gagal. Silakan coba lagi.')
+        return redirect('login')
+
+    try:
+        user = _sync_sso_student_user(sso_profile)
+    except ValueError as error:
+        messages.error(request, str(error))
+        return redirect('login')
+
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    next_url = request.session.pop('sso_next_url', '')
+    return redirect(next_url or 'index')
 
 
 def _build_history_items(user):
@@ -193,6 +311,7 @@ def _get_safe_next_url(request):
         return next_url
     return ''
 
+
 def login_view(request):
     # Kalau sudah login, langsung lempar ke halaman depan
     if request.user.is_authenticated:
@@ -208,46 +327,91 @@ def login_view(request):
             messages.error(request, "Email dan password wajib diisi.")
             return render(request, 'registration/login.html', {'next_url': next_url})
 
-        try:
-            # Skenario 1: Email sudah terdaftar -> Proses Login
-            user_exists = User.objects.get(email__iexact=email)
-            # Karena Django by default mencari 'username', kita passing email ke parameter username
-            auth_user = authenticate(request, username=user_exists.username, password=password) 
-            
+        user_exists = User.objects.filter(email__iexact=email).order_by('id').first()
+        if user_exists is not None:
+            if not user_exists.has_usable_password():
+                messages.error(
+                    request,
+                    "Email ini sudah terhubung ke akun SSO UI. Silakan login dengan Continue with SSO.",
+                )
+                return render(request, 'registration/login.html', {'next_url': next_url})
+
+            auth_user = authenticate(request, username=user_exists.username, password=password)
             if auth_user is not None:
                 login(request, auth_user)
                 return redirect(next_url or 'index')
-            else:
-                messages.error(request, "Password salah. Silakan coba lagi.")
-                
-        except User.DoesNotExist:
-            # Skenario 2: Email belum ada -> Proses Register sekaligus Login
-            email_error, normalized_email = _get_email_registration_error(email)
-            if email_error:
-                messages.error(request, email_error)
-                return render(request, 'registration/login.html', {'next_url': next_url})
 
-            password_errors = _get_password_requirement_errors(password)
-            if password_errors:
-                messages.error(
-                    request,
-                    "Password untuk akun baru harus mengandung "
-                    + ", ".join(password_errors)
-                    + ".",
-                )
-                return render(request, 'registration/login.html', {'next_url': next_url})
-            # Kita 'akali' requirement Django dengan memasukkan email ke kolom username juga
-            new_user = User.objects.create_user(
-                username=normalized_email,
-                email=normalized_email,
-                password=password,
-                user_type='ALUMNI',
+            messages.error(request, "Email sudah terdaftar, tetapi password salah.")
+            return render(request, 'registration/login.html', {'next_url': next_url})
+
+        # Skenario 2: Email belum ada -> Proses Register sekaligus Login
+        email_error, normalized_email = _get_email_registration_error(email)
+        if email_error:
+            messages.error(request, email_error)
+            return render(request, 'registration/login.html', {'next_url': next_url})
+
+        password_errors = _get_password_requirement_errors(password)
+        if password_errors:
+            messages.error(
+                request,
+                "Password untuk akun baru harus mengandung "
+                + ", ".join(password_errors)
+                + ".",
             )
-            auth_user = authenticate(request, username=normalized_email, password=password)
+            return render(request, 'registration/login.html', {'next_url': next_url})
+
+        new_user = User.objects.create_user(
+            username=normalized_email,
+            email=normalized_email,
+            password=password,
+            user_type='ALUMNI',
+        )
+        auth_user = authenticate(request, username=normalized_email, password=password)
+        if auth_user is not None:
             login(request, auth_user)
             return redirect(next_url or 'index')
 
     return render(request, 'registration/login.html', {'next_url': next_url})
+
+
+def sso_login(request):
+    if request.user.is_authenticated:
+        return redirect(_get_safe_next_url(request) or 'index')
+
+    next_url = _get_safe_next_url(request)
+    if next_url:
+        request.session['sso_next_url'] = next_url
+    else:
+        request.session.pop('sso_next_url', None)
+
+    return redirect(reverse('sso_login_callback'))
+
+
+def sso_login_callback(request):
+    service_url = get_service_url(request)
+    client = get_cas_client(service_url)
+    login_url = client.get_login_url()
+    ticket = request.GET.get('ticket')
+
+    if not ticket:
+        return redirect(login_url)
+
+    try:
+        sso_profile = sso_authenticate(ticket, client)
+    except ParseError:
+        messages.error(
+            request,
+            'Respons verifikasi dari SSO UI tidak valid. Biasanya ini terjadi karena callback localhost belum didukung oleh SSO UI.',
+        )
+        return redirect('login')
+    except (RequestException, CASError):
+        messages.error(
+            request,
+            'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid. Jika ini masih di localhost, kemungkinan callback belum didukung.',
+        )
+        return redirect('login')
+
+    return _complete_sso_login(request, sso_profile)
 
 @login_required
 def checkout_alumni(request):
@@ -296,39 +460,3 @@ def history(request):
 def custom_logout(request):
     logout(request) # Menghapus sesi user
     return redirect('index')
-
-def mock_sso_login(request):
-    """
-    Fungsi tiruan (Mock) untuk bypass SSO UI selama Localhost belum di-whitelist.
-    """
-    # 1. Tentukan identitas akun dummy
-    dummy_username = "mahasiswa.dummy"
-    dummy_email = "mahasiswa.dummy@ui.ac.id"
-    
-    # 2. Cari atau buat user otomatis di database lokal
-    user, created = User.objects.get_or_create(
-        username=dummy_username,
-        defaults={
-            'email': dummy_email,
-            'user_type': 'STUDENT',
-            'npm': '2400000000',
-        }
-    )
-    
-    # Kalau user baru dibuat, set passwordnya agar tidak bisa dipakai login manual biasa
-    if created:
-        user.set_unusable_password()
-        user.save()
-    elif user.user_type != 'STUDENT':
-        user.user_type = 'STUDENT'
-        if not user.npm:
-            user.npm = '2400000000'
-        user.save(update_fields=['user_type', 'npm'])
-        
-    # 3. Paksa login tanpa password (bypass)
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    
-    # 4. Ambil parameter 'next' dari URL (contoh: /checkout/alumni/). 
-    # Kalau tidak ada, default lemparkan ke halaman utama ('/')
-    next_url = request.GET.get('next', '/')
-    return redirect(next_url)

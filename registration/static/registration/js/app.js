@@ -1,4 +1,5 @@
 (() => {
+  const flashMessage = document.querySelector('.messages');
   const form = document.querySelector('#registration-form');
   const quantity = document.querySelector('#id_ticket_quantity');
   const total = document.querySelector('#total-price');
@@ -10,6 +11,15 @@
   const formatter = new Intl.NumberFormat('id-ID');
 
   const formatRupiah = (amount) => `Rp${formatter.format(amount)}`;
+
+  if (flashMessage) {
+    window.setTimeout(() => {
+      flashMessage.classList.add('is-hiding');
+      window.setTimeout(() => {
+        flashMessage.remove();
+      }, 300);
+    }, 3200);
+  }
 
   if (form && quantity && total && form.dataset.unitPrice) {
     const unitPrice = Number(form.dataset.unitPrice);

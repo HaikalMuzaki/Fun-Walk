@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',
-    'django_cas_ng',
     'django_extensions',
 ]
 
@@ -133,16 +132,9 @@ AUTH_USER_MODEL = 'registration.CustomUser'
 
 LOGIN_URL = 'login'
 
-# ==========================================
-# KONFIGURASI SSO UI (CAS)
-# ==========================================
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    'django_cas_ng.backends.CASBackend', # Mesin autentikasi SSO
 )
 
-CAS_SERVER_URL = 'https://sso.ui.ac.id/cas2/' # URL Gerbang SSO UI
-CAS_VERSION = '2'
-CAS_APPLY_ATTRIBUTES_TO_USER = True
-
-CAS_FORCE_SSL_SERVICE_URL = True
+SSO_UI_URL = 'https://sso.ui.ac.id/cas2/'
+SSO_UI_FORCE_SERVICE_HTTPS = not DEBUG

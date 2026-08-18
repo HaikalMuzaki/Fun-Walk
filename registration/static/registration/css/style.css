@@ -47,32 +47,17 @@ body {
 .logo {
   display: flex;
   align-items: center;
-  color: #101650;
-  line-height: 1;
+  flex-shrink: 0;
   text-decoration: none;
 }
 
-.logo > b {
-  margin-right: 0.8rem;
-  font-size: 2.4rem;
-  font-style: italic;
-  letter-spacing: -0.55rem;
-}
-
-.logo span {
-  font-size: 0.45rem;
-  font-weight: 600;
-}
-
-.logo strong {
-  font-size: 0.6rem;
-}
-
-.logo small {
+.logo-image {
+  width: auto;
+  max-width: 8rem;
+  height: auto;
+  max-height: 2.2rem;
   display: block;
-  margin-top: 0.35rem;
-  color: #725c00;
-  font-size: 0.32rem;
+  object-fit: contain;
 }
 
 .navbar {
@@ -115,8 +100,8 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.8rem 1.5rem;
-  border-radius: 0.7rem;
+  padding: 0.4rem 1.4rem;
+  border-radius: 0.5rem;
   background: #fff1a8;
   cursor: pointer;
   list-style: none;
@@ -128,22 +113,22 @@ body {
 
 .auth-summary::after {
   content: "";
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 0.7rem;
+  height: 0.7rem;
   flex-shrink: 0;
   margin-left: auto;
-  border-right: 0.16rem solid #000;
-  border-bottom: 0.16rem solid #000;
-  transform: rotate(45deg) translateY(-0.15rem);
+  border-right: 0.13rem solid #000;
+  border-bottom: 0.13rem solid #000;
+  transform: rotate(45deg) translateY(-0.08rem);
   transition: transform 0.2s ease;
 }
 
 .auth-dropdown[open] .auth-summary {
-  border-radius: 0.7rem 0.7rem 0 0;
+  border-radius: 0.55rem 0.55rem 0 0;
 }
 
 .auth-dropdown[open] .auth-summary::after {
-  transform: rotate(225deg) translateY(-0.05rem);
+  transform: rotate(225deg) translateY(-0.02rem);
 }
 
 .auth-email {
@@ -159,15 +144,15 @@ body {
   right: 0;
   z-index: 10;
   min-width: 100%;
-  padding: 1rem 1.5rem 1.2rem;
-  border-radius: 0 0 0.7rem 0.7rem;
+  padding: 0.75rem 0.9rem 0.9rem;
+  border-radius: 0 0 0.55rem 0.55rem;
   background: #fff1a8;
   box-shadow: 0 0.4rem 0.9rem rgb(0 0 0 / 12%);
 }
 
 .logout-link {
   color: #ff3b30;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
 }
@@ -187,6 +172,14 @@ body {
   border-left: 0.3rem solid var(--yellow);
   background: #fff;
   box-shadow: 0 0.3rem 0.8rem #0003;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: flashMessageHide 0.35s ease 3s forwards;
+}
+
+.messages.is-hiding {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-0.4rem);
 }
 
 .dies-section {
@@ -431,6 +424,11 @@ body {
   flex-direction: column;
 }
 
+.package-item--student {
+  position: relative;
+  padding-top: 0.7rem;
+}
+
 .package-info {
   min-height: 8.2rem;
   position: relative;
@@ -444,17 +442,21 @@ body {
 
 .package-badge {
   position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  padding: 0.22rem 0.5rem;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
-  background: #fff8db;
-  color: #a63300;
-  font-size: 0.48rem;
+  background: linear-gradient(135deg, #fffdf0 0%, #ffd86b 100%);
+  color: #8f2a00;
+  font-size: 0.5rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow: 0 0.15rem 0.35rem rgb(0 0 0 / 10%);
+  box-shadow: 0 0.22rem 0.45rem rgb(0 0 0 / 14%);
+  border: 0.08rem solid rgb(255 255 255 / 65%);
+  transform: translate(-50%, -45%) rotate(-4deg);
+  white-space: nowrap;
 }
 
 .package-name {
@@ -908,16 +910,11 @@ body {
     padding-left: 3rem;
   }
 
-  .logo > b {
-    font-size: 3.1rem;
-  }
-
-  .logo span {
-    font-size: 0.55rem;
-  }
-
-  .logo strong {
-    font-size: 0.75rem;
+  .logo-image {
+    width: auto;
+    max-width: 10rem;
+    max-height: 2.8rem;
+    height: auto;
   }
 
   .navbar {
@@ -928,6 +925,19 @@ body {
   .login-link,
   .auth-summary {
     font-size: 1.15rem;
+  }
+
+  .auth-summary {
+    min-width: 16rem;
+    padding: 0.65rem 1.1rem;
+  }
+
+  .auth-menu {
+    padding: 0.9rem 1.1rem 1rem;
+  }
+
+  .logout-link {
+    font-size: 1rem;
   }
 
   .dies-section {
@@ -998,10 +1008,8 @@ body {
   }
 
   .package-badge {
-    top: 0.9rem;
-    right: 0.9rem;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.6rem;
+    padding: 0.38rem 0.9rem;
+    font-size: 0.62rem;
   }
 
   .package-name {
@@ -1523,6 +1531,15 @@ body {
   }
 }
 
+@keyframes flashMessageHide {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-0.4rem);
+  }
+}
+
 @keyframes loginSceneIn {
   from {
     transform: scale(1.04);
@@ -1618,7 +1635,7 @@ body {
 @media (max-width: 768px) {
   .auth-summary,
   .auth-menu {
-    min-width: min(22rem, calc(100vw - 3rem));
+    min-width: min(16rem, calc(100vw - 3rem));
   }
 
   .history-section {
@@ -1656,13 +1673,13 @@ body {
 
 @media (max-width: 480px) {
   .auth-summary {
-    min-width: min(18rem, calc(100vw - 2rem));
-    padding: 0.75rem 1rem;
+    min-width: min(14rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.85rem;
   }
 
   .auth-menu {
-    min-width: min(18rem, calc(100vw - 2rem));
-    padding: 0.85rem 1rem 1rem;
+    min-width: min(14rem, calc(100vw - 2rem));
+    padding: 0.7rem 0.85rem 0.8rem;
   }
 
   .history-section {
