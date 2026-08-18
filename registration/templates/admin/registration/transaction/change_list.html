@@ -1,0 +1,14 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+  <li>
+    <a href="{{ responses_url }}">Live Response</a>
+  </li>
+  <li>
+    <a href="{{ download_latest_url }}">Download Spreadsheet Terbaru</a>
+  </li>
+  <li>
+    <a href="{{ create_backup_url }}">Buat Backup Spreadsheet Baru</a>
+  </li>
+  {{ block.super }}
+{% endblock %}

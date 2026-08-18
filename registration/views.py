@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 from xml.etree.ElementTree import ParseError
 
@@ -25,6 +26,7 @@ from django_sso_ui.utils import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 PACKAGE_DETAILS = {
     'ALUMNI_PACK': {
@@ -82,6 +84,24 @@ def _get_password_requirement_errors(password):
         errors.append('simbol seperti !, @, #, (, ), ,, :, atau .')
 
     return errors
+
+
+def _normalize_whatsapp_number(value):
+    normalized_value = ''.join(character for character in (value or '').strip() if character.isdigit())
+    if not normalized_value:
+        raise ValueError('Nomor WhatsApp wajib diisi.')
+    return normalized_value
+
+
+def _parse_cohort_year(value):
+    normalized_value = (value or '').strip()
+    if not normalized_value:
+        return None
+
+    try:
+        return int(normalized_value)
+    except (TypeError, ValueError):
+        raise ValueError('Tahun angkatan tidak valid.')
 
 
 def _get_first_non_empty_value(data, *keys):
@@ -247,6 +267,8 @@ def _build_history_items(user):
 
 def _create_checkout_transaction(request, package_type):
     full_name = (request.POST.get('full_name') or '').strip()
+    whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
+    cohort_year = _parse_cohort_year(request.POST.get('cohort_year'))
     try:
         quantity = int(request.POST.get('ticket_quantity') or 1)
     except (TypeError, ValueError):
@@ -255,6 +277,8 @@ def _create_checkout_transaction(request, package_type):
 
     if not full_name:
         raise ValueError('Nama Lengkap wajib diisi.')
+    if cohort_year is None:
+        raise ValueError('Tahun angkatan wajib diisi.')
 
     tshirt_sizes = []
     if package_type != 'TICKET_ONLY':
@@ -268,6 +292,8 @@ def _create_checkout_transaction(request, package_type):
         transaction_obj = Transaction.objects.create(
             user=request.user,
             status='PENDING',
+            whatsapp_number=whatsapp_number,
+            cohort_year=cohort_year,
             total_amount=Decimal('0'),
         )
 
@@ -394,21 +420,39 @@ def sso_login_callback(request):
     ticket = request.GET.get('ticket')
 
     if not ticket:
+        logger.info('SSO callback tanpa ticket, redirect ke CAS login lagi. service_url=%s', service_url)
         return redirect(login_url)
 
     try:
         sso_profile = sso_authenticate(ticket, client)
     except ParseError:
+        logger.warning(
+            'SSO callback gagal parse response CAS2. service_url=%s ticket=%s',
+            service_url,
+            ticket,
+        )
         messages.error(
             request,
+            'Respons verifikasi dari SSO UI tidak valid. Biasanya ini terjadi karena callback localhost belum didukung oleh SSO UI.',
         )
         return redirect('login')
     except (RequestException, CASError):
+        logger.warning(
+            'SSO callback gagal verifikasi ke CAS2. service_url=%s ticket=%s',
+            service_url,
+            ticket,
+        )
         messages.error(
             request,
+            'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid. Jika ini masih di localhost, kemungkinan callback belum didukung.',
         )
         return redirect('login')
 
+    logger.info(
+        'SSO callback berhasil diverifikasi. service_url=%s username=%s',
+        service_url,
+        (sso_profile or {}).get('username'),
+    )
     return _complete_sso_login(request, sso_profile)
 
 @login_required

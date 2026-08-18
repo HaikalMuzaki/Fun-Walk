@@ -26,6 +26,8 @@ class Transaction(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')
     transaction_id = models.CharField(max_length=50, unique=True, editable=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name="Nomor WhatsApp")
+    cohort_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Tahun Angkatan")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -80,3 +82,27 @@ class EventInfo(models.Model):
     content = models.TextField(verbose_name="Konten (HTML/Teks)")
     image_attachment = models.ImageField(upload_to='event_info/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
+
+
+class TransactionSpreadsheetBackup(models.Model):
+    title = models.CharField(max_length=150, verbose_name="Nama Backup")
+    file = models.FileField(upload_to='admin_exports/', verbose_name="File Spreadsheet")
+    transaction_count = models.PositiveIntegerField(default=0, verbose_name="Jumlah Transaksi")
+    response_count = models.PositiveIntegerField(default=0, verbose_name="Jumlah Baris Response")
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='created_transaction_backups',
+        verbose_name="Dibuat Oleh",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Backup Spreadsheet Response"
+        verbose_name_plural = "Backup Spreadsheet Response"
+
+    def __str__(self):
+        return self.title
