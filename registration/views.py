@@ -326,7 +326,20 @@ def _create_checkout_transaction(request, package_type):
     return transaction_obj
 
 def index(request):
-    return render(request, 'registration/index.html')
+    has_bought_student_pack = False
+    
+    # Cek apakah user udah login dan dia mahasiswa
+    if request.user.is_authenticated and _is_student_sso_user(request.user):
+        # Cek apakah udah punya tiket mahasiswa yang PAID
+        has_bought_student_pack = Ticket.objects.filter(
+            transaction__user=request.user,
+            transaction__status='PAID',
+            package_type='STUDENT_PACK'
+        ).exists()
+        
+    return render(request, 'registration/index.html', {
+        'has_bought_student_pack': has_bought_student_pack
+    })
 
 def _get_safe_next_url(request):
     next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
@@ -401,93 +414,143 @@ def login_view(request):
     return render(request, 'registration/login.html', {'next_url': next_url})
 
 
+# def sso_login(request):
+#     if request.user.is_authenticated:
+#         return redirect(_get_safe_next_url(request) or 'index')
+
+#     next_url = _get_safe_next_url(request)
+#     if next_url:
+#         request.session['sso_next_url'] = next_url
+#     else:
+#         request.session.pop('sso_next_url', None)
+
+#     return redirect(reverse('sso_login_callback'))
+
+
+# def sso_login_callback(request):
+#     service_url = get_service_url(request)
+#     client = get_cas_client(service_url)
+#     login_url = client.get_login_url()
+#     ticket = request.GET.get('ticket')
+
+#     if not ticket:
+#         logger.info('SSO callback tanpa ticket, redirect ke CAS login lagi. service_url=%s', service_url)
+#         return redirect(login_url)
+
+#     try:
+#         sso_profile = sso_authenticate(ticket, client)
+#     except ParseError:
+#         logger.warning(
+#             'SSO callback gagal parse response CAS2. service_url=%s ticket=%s',
+#             service_url,
+#             ticket,
+#         )
+#         messages.error(
+#             request,
+#             'Respons verifikasi dari SSO UI tidak valid. Biasanya ini terjadi karena callback localhost belum didukung oleh SSO UI.',
+#         )
+#         return redirect('login')
+#     except (RequestException, CASError):
+#         logger.warning(
+#             'SSO callback gagal verifikasi ke CAS2. service_url=%s ticket=%s',
+#             service_url,
+#             ticket,
+#         )
+#         messages.error(
+#             request,
+#             'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid. Jika ini masih di localhost, kemungkinan callback belum didukung.',
+#         )
+#         return redirect('login')
+
+#     logger.info(
+#         'SSO callback berhasil diverifikasi. service_url=%s username=%s',
+#         service_url,
+#         (sso_profile or {}).get('username'),
+#     )
+#     return _complete_sso_login(request, sso_profile)
+
+# ==========================================
+# MOCK SSO BYPASS (Ganti sso_login yang asli)
+# ==========================================
 def sso_login(request):
     if request.user.is_authenticated:
         return redirect(_get_safe_next_url(request) or 'index')
 
-    next_url = _get_safe_next_url(request)
-    if next_url:
-        request.session['sso_next_url'] = next_url
-    else:
-        request.session.pop('sso_next_url', None)
+    # --- UBAH NAMA DI BAWAH INI UNTUK TESTING AKUN BERBEDA ---
+    test_username = 'naila.haikal' 
+    test_email = 'naila.haikal@ui.ac.id'
 
-    return redirect(reverse('sso_login_callback'))
+    user, created = User.objects.get_or_create(username=test_username)
+    
+    # Paksa update data jadi mahasiswa
+    if created or user.email != test_email or user.user_type != 'STUDENT':
+        user.email = test_email
+        user.user_type = 'STUDENT'
+        user.save()
 
-
-def sso_login_callback(request):
-    service_url = get_service_url(request)
-    client = get_cas_client(service_url)
-    login_url = client.get_login_url()
-    ticket = request.GET.get('ticket')
-
-    if not ticket:
-        logger.info('SSO callback tanpa ticket, redirect ke CAS login lagi. service_url=%s', service_url)
-        return redirect(login_url)
-
-    try:
-        sso_profile = sso_authenticate(ticket, client)
-    except ParseError:
-        logger.warning(
-            'SSO callback gagal parse response CAS2. service_url=%s ticket=%s',
-            service_url,
-            ticket,
-        )
-        messages.error(
-            request,
-            'Respons verifikasi dari SSO UI tidak valid. Biasanya ini terjadi karena callback localhost belum didukung oleh SSO UI.',
-        )
-        return redirect('login')
-    except (RequestException, CASError):
-        logger.warning(
-            'SSO callback gagal verifikasi ke CAS2. service_url=%s ticket=%s',
-            service_url,
-            ticket,
-        )
-        messages.error(
-            request,
-            'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid. Jika ini masih di localhost, kemungkinan callback belum didukung.',
-        )
-        return redirect('login')
-
-    logger.info(
-        'SSO callback berhasil diverifikasi. service_url=%s username=%s',
-        service_url,
-        (sso_profile or {}).get('username'),
-    )
-    return _complete_sso_login(request, sso_profile)
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    
+    next_url = _get_safe_next_url(request) or request.session.get('sso_next_url', '')
+    return redirect(next_url or 'index')
 
 @login_required
 def checkout_alumni(request):
     if request.method == 'POST':
         try:
-            _create_checkout_transaction(request, 'ALUMNI_PACK')
-            return redirect('history')
+            transaction_obj = _create_checkout_transaction(request, 'ALUMNI_PACK')
+            # Simpan data ke session untuk dipakai di payment_page
+            request.session['payment_ticket_type'] = 'Paket Alumni'
+            request.session['payment_quantity'] = transaction_obj.tickets.count()
+            return redirect('payment_page')
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-alumni.html')
 
 @login_required
 def checkout_mahasiswa(request):
+    # Validasi 1: Harus akun SSO
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
-            "Paket Mahasiswa Aktif hanya dapat dibeli oleh akun yang login melalui SSO UI.",
+            "Paket Mahasiswa Aktif hanya dapat dibeli oleh akun yang login melalui SSO UI."
         )
         return redirect('index')
+
+    # Validasi 2 (REVISI): Query langsung ke tabel Ticket (Pasti terbaca oleh Django)
+    existing_student_tickets = Ticket.objects.filter(
+        transaction__user=request.user,
+        package_type='STUDENT_PACK'
+    ).select_related('transaction')
+
+    # Cek status transaksinya
+    for ticket in existing_student_tickets:
+        if ticket.transaction.status == 'PENDING':
+            messages.warning(request, "Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di sini.")
+            return redirect('history')
+        elif ticket.transaction.status == 'PAID':
+            messages.error(request, "Anda telah menggunakan special offer ini.")
+            return redirect('index')
+
+    # Proses form jika validasi lolos
     if request.method == 'POST':
         try:
-            _create_checkout_transaction(request, 'STUDENT_PACK')
-            return redirect('history')
+            transaction_obj = _create_checkout_transaction(request, 'STUDENT_PACK')
+            request.session['payment_ticket_type'] = 'Paket Mahasiswa Aktif'
+            request.session['payment_quantity'] = transaction_obj.tickets.count()
+            return redirect('payment_page')
         except ValueError as error:
             messages.error(request, str(error))
+            
     return render(request, 'registration/checkout-mahasiswa.html')
 
 @login_required
 def checkout_non_paket(request):
     if request.method == 'POST':
         try:
-            _create_checkout_transaction(request, 'TICKET_ONLY')
-            return redirect('history')
+            transaction_obj = _create_checkout_transaction(request, 'TICKET_ONLY')
+            request.session['payment_ticket_type'] = 'Non-Paket'
+            request.session['payment_quantity'] = transaction_obj.tickets.count()
+            return redirect('payment_page')
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-non-paket.html')
@@ -505,26 +568,27 @@ def custom_logout(request):
     return redirect('index')
 
 def payment_page(request):
-    # Mapping harga sesuai rules
     PRICE_MAP = {
         'Paket Alumni': 275000,
         'Paket Mahasiswa Aktif': 175000,
         'Non-Paket': 50000
     }
 
-    if request.method == 'POST':
-        ticket_type = request.POST.get('ticket_type', 'Paket Alumni')
-        quantity = int(request.POST.get('quantity', 1))
-    else:
-        # Fallback testing
-        ticket_type = 'Paket Alumni'
-        quantity = 1
+    # Ambil data dari Session hasil redirect, fallback ke default jika kosong
+    ticket_type = request.session.get('payment_ticket_type', 'Paket Alumni')
+    quantity = request.session.get('payment_quantity', 1)
 
-    # Kalkulasi
+    # Kalkulasi lengkap ala E-Commerce
     base_price = PRICE_MAP.get(ticket_type, 0)
     
     subtotal = base_price * quantity
     total_bayar = subtotal
+
+    # Hapus session agar tidak menyangkut kalau user refresh atau buka form baru
+    if 'payment_ticket_type' in request.session:
+        del request.session['payment_ticket_type']
+    if 'payment_quantity' in request.session:
+        del request.session['payment_quantity']
 
     context = {
         'ticket_type': ticket_type,

@@ -135,6 +135,35 @@
           </a>
         </div>
 
+        {% if has_bought_student_pack %}
+        <!-- KONDISI MATI (GREY OUT) KARENA SUDAH BELI -->
+        <div class="package-item package-item--student" style="opacity: 0.5; filter: grayscale(100%); pointer-events: none;">
+          <span class="package-badge">SSO UI Only</span>
+          <div class="package-info">
+            <h3 class="package-name">
+              Paket Mahasiswa aktif
+            </h3>
+            <p class="package-description">
+              Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.
+            </p>
+            <p class="package-description">
+              Paket sudah termasuk Race Pack dan Kaos.
+            </p>
+            <div class="package-price-group">
+              <strong class="package-price" style="color: #666;">
+                Telah Diklaim
+              </strong>
+            </div>
+            <p class="package-note" style="visibility: hidden;">
+              *Diskon hanya untuk 1 akun mahasiswa
+            </p>
+          </div>
+          <button class="package-button" style="background-color: #ccc; color: #666; border: none; cursor: not-allowed; width: 100%; text-align: center; padding: 12px 24px; border-radius: 8px; font-weight: 600;" disabled>
+            Sudah Dibeli
+          </button>
+        </div>
+        {% else %}
+        <!-- KONDISI NORMAL BELUM BELI -->
         <div class="package-item package-item--student">
           <span class="package-badge">
             SSO UI Only
@@ -165,6 +194,7 @@
             Beli Paket Mahasiswa Aktif
           </a>
         </div>
+        {% endif %}
 
         <div class="package-item">
           <div class="package-info">

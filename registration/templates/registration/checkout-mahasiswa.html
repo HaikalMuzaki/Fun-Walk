@@ -1,285 +1,123 @@
+{% extends 'registration/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="id">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1" name="viewport"/>
-  <title>
-   Dies Natalis 40 Fasilkom UI
-  </title>
-  <link href="https://fonts.googleapis.com" rel="preconnect"/>
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <link href="{% static 'registration/css/style.css' %}" rel="stylesheet"/>
- </head>
- <body>
-  <header class="header">
-   <div class="header-container">
-    <a aria-label="Dies Natalis 40 Fasilkom UI" class="logo" href="{% url 'index' %}">
-     <img alt="Dies Natalis 40 Fasilkom UI" class="logo-image" src="{% static 'registration/assets/logo.png' %}?v=20260818"/>
-    </a>
-    <nav aria-label="Navigasi utama" class="navbar">
-        <a class="nav-link" href="{% url 'index' %}">Home</a>
-        <a class="nav-link" href="{% url 'history' %}">History</a>
-    </nav>
-    <div class="auth">
-     {% if request.user.is_authenticated %}
-     <details class="auth-dropdown">
-      <summary class="auth-summary">
-       <span class="auth-email">
-        {{ request.user.email|default:request.user.username }}
-       </span>
-      </summary>
-      <div class="auth-menu">
-       <a class="logout-link" href="{% url 'logout' %}">
-        Log Out
-       </a>
-      </div>
-     </details>
-     {% else %}
-     <a class="login-link" href="{% url 'login' %}">
-      Register/Login
-     </a>
-     {% endif %}
-    </div>
-   </div>
-  </header>
-  <main class="checkout-page">
-   <section class="checkout-card">
+
+{% block title %}Checkout Paket Mahasiswa Aktif{% endblock %}
+
+{% block content %}
+<main class="checkout-page">
+  <section class="checkout-card">
     <h1>
-     Paket Mahasiswa Aktif
+      Paket Mahasiswa Aktif
     </h1>
-    <form method="POST" action="" data-unit-price="275000" data-discounted-unit-price="175000" id="registration-form">
-    {% csrf_token %}
-    {% if messages %}
-     <div class="form-errors">
-      {% for message in messages %}
-       <p>{{ message }}</p>
-      {% endfor %}
-     </div>
-    {% endif %}
-     <div class="checkout-field">
-      <label for="id_full_name">
-       Nama Lengkap
-      </label>
-      <input id="id_full_name" name="full_name" required="" type="text"/>
-     </div>
-     <div class="checkout-field">
-      <label for="id_whatsapp_number">
-       Nomor WhatsApp
-      </label>
-      <input id="id_whatsapp_number" inputmode="numeric" name="whatsapp_number" pattern="[0-9]*" required="" type="tel"/>
-     </div>
-     <div class="checkout-field">
-      <label for="id_cohort_year">
-       Angkatan
-      </label>
-      <select id="id_cohort_year" name="cohort_year">
-       <option>
-        2023
-       </option>
-       <option>
-        2024
-       </option>
-       <option>
-        2025
-       </option>
-       <option>
-        2026
-       </option>
-      </select>
-     </div>
-     <div class="checkout-field">
-      <label for="id_study_program">
-       Program Studi
-      </label>
-      <select id="id_study_program" name="study_program">
-       <option>
-        Ilmu Komputer
-       </option>
-       <option>
-        Sistem Informasi
-       </option>
-       <option>
-        Kecerdasan Artifisial
-       </option>
-       <option>
-        Kelas Internasional
-       </option>
-      </select>
-     </div>
-     <div class="checkout-field">
-      <label for="id_ticket_quantity">
-       Jumlah Tiket
-      </label>
-      <select id="id_ticket_quantity" name="ticket_quantity">
-       <option selected="" value="1">
-        1
-       </option>
-       <option value="2">
-        2
-       </option>
-       <option value="3">
-        3
-       </option>
-       <option value="4">
-        4
-       </option>
-       <option value="5">
-        5
-       </option>
-      </select>
-     </div>
-     <div aria-label="Panduan ukuran baju" class="size-chart">
-      <table>
-       <thead>
-        <tr>
-         <th>
-          Ukuran
-         </th>
-         <th>
-          Dada
-         </th>
-         <th>
-          Panjang
-         </th>
-        </tr>
-       </thead>
-       <tbody>
-        <tr>
-         <td>
-          XS
-         </td>
-         <td>
-          78&ndash;82
-         </td>
-         <td>
-          55&ndash;59
-         </td>
-        </tr>
-        <tr>
-         <td>
-          S
-         </td>
-         <td>
-          82&ndash;86
-         </td>
-         <td>
-          59&ndash;63
-         </td>
-        </tr>
-        <tr>
-         <td>
-          M
-         </td>
-         <td>
-          86&ndash;90
-         </td>
-         <td>
-          63&ndash;67
-         </td>
-        </tr>
-        <tr>
-         <td>
-          L
-         </td>
-         <td>
-          90&ndash;94
-         </td>
-         <td>
-          67&ndash;71
-         </td>
-        </tr>
-        <tr>
-         <td>
-          XL
-         </td>
-         <td>
-          94&ndash;98
-         </td>
-         <td>
-          71&ndash;75
-         </td>
-        </tr>
-        <tr>
-         <td>
-          XXL+
-         </td>
-         <td>
-          102&ndash;116
-         </td>
-         <td>
-          79&ndash;87
-         </td>
-        </tr>
-       </tbody>
-      </table>
-     </div>
-     <div id="shirt-size-fields">
+    
+    <!-- data-unit-price diset 175000 biar logic js bawaan temen lu nangkep 175rb -->
+    <form method="POST" action="" data-unit-price="175000" data-discounted-unit-price="175000" id="registration-form">
+      {% csrf_token %}
+      {% if messages %}
+      <div class="form-errors">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      
       <div class="checkout-field">
-       <label for="id_shirt_size_1">
-        Ukuran Kaos 1
-       </label>
-       <select id="id_shirt_size_1" name="shirt_size_1">
-        <option>
-         XS
-        </option>
-        <option>
-         S
-        </option>
-        <option selected="">
-         M
-        </option>
-        <option>
-         L
-        </option>
-        <option>
-         XL
-        </option>
-        <option>
-         XXL+
-        </option>
-       </select>
+        <label for="id_full_name">
+          Nama Lengkap
+        </label>
+        <input id="id_full_name" name="full_name" required="" type="text"/>
       </div>
-     </div>
-     <div class="checkout-summary" id="price-summary">
-      <div class="checkout-summary-row">
-       <span>
-        Harga Normal
-       </span>
-       <strong id="base-price">
-        Rp275.000
-       </strong>
+      
+      <div class="checkout-field">
+        <label for="id_whatsapp_number">
+          Nomor WhatsApp
+        </label>
+        <input id="id_whatsapp_number" inputmode="numeric" name="whatsapp_number" pattern="[0-9]*" required="" type="tel"/>
       </div>
-      <div class="checkout-summary-row checkout-summary-row--discount">
-       <span>
-        Diskon Voucher
-       </span>
-       <strong id="discount-price">
-        -Rp100.000
-       </strong>
+      
+      <div class="checkout-field">
+        <label for="id_cohort_year">
+          Angkatan
+        </label>
+        <select id="id_cohort_year" name="cohort_year">
+          <option>2023</option>
+          <option>2024</option>
+          <option>2025</option>
+          <option>2026</option>
+        </select>
       </div>
-     </div>
-     <div class="checkout-total">
-      <span>
-       Total Harga
-      </span>
-      <strong id="total-price">
-       Rp175.000
-      </strong>
-     </div>
-     <button class="payment-button" type="submit">
-      Continue to Payment
-     </button>
+      
+      <div class="checkout-field">
+        <label for="id_study_program">
+          Program Studi
+        </label>
+        <select id="id_study_program" name="study_program">
+          <option>Ilmu Komputer</option>
+          <option>Sistem Informasi</option>
+          <option>Kecerdasan Artifisial</option>
+          <option>Kelas Internasional</option>
+        </select>
+      </div>
+      
+      <!-- Input jumlah tiket disembunyikan dan di-lock ke value 1 -->
+      <input type="hidden" id="id_ticket_quantity" name="ticket_quantity" value="1">
+      
+      <div aria-label="Panduan ukuran baju" class="size-chart">
+        <table>
+          <thead>
+            <tr>
+              <th>Ukuran</th>
+              <th>Dada</th>
+              <th>Panjang</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>XS</td><td>78&ndash;82</td><td>55&ndash;59</td></tr>
+            <tr><td>S</td><td>82&ndash;86</td><td>59&ndash;63</td></tr>
+            <tr><td>M</td><td>86&ndash;90</td><td>63&ndash;67</td></tr>
+            <tr><td>L</td><td>90&ndash;94</td><td>67&ndash;71</td></tr>
+            <tr><td>XL</td><td>94&ndash;98</td><td>71&ndash;75</td></tr>
+            <tr><td>XXL+</td><td>102&ndash;116</td><td>79&ndash;87</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div id="shirt-size-fields">
+        <div class="checkout-field">
+          <label for="id_shirt_size_1">
+            Ukuran Kaos 1
+          </label>
+          <select id="id_shirt_size_1" name="shirt_size_1">
+            <option>XS</option>
+            <option>S</option>
+            <option selected="">M</option>
+            <option>L</option>
+            <option>XL</option>
+            <option>XXL+</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="checkout-summary" id="price-summary">
+        <div class="checkout-summary-row">
+          <span>Harga Normal</span>
+          <strong id="base-price" style="text-decoration: line-through; color: #888;">Rp275.000</strong>
+        </div>
+        <div class="checkout-summary-row checkout-summary-row--discount">
+          <span>SSO Special Offer</span>
+          <strong id="discount-price">-Rp100.000</strong>
+        </div>
+      </div>
+      
+      <div class="checkout-total">
+        <span>Total Harga</span>
+        <strong id="total-price">Rp175.000</strong>
+      </div>
+      
+      <button class="payment-button" type="submit">
+        Continue to Payment
+      </button>
     </form>
-   </section>
-  </main>
-  <footer class="footer">
-   <span>
-    Fasilkom UI
-   </span>
-  </footer>
-  <script src="{% static 'registration/js/app.js' %}">
-  </script>
- </body>
-</html>
+  </section>
+</main>
+{% endblock %}
