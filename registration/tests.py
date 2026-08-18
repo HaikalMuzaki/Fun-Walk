@@ -3,11 +3,15 @@ from django.test import RequestFactory
 from xml.etree.ElementTree import ParseError
 from requests.exceptions import RequestException
 from unittest.mock import patch
+from decimal import Decimal
+import os
+import shutil
+import tempfile
 
 from django.test import TestCase, override_settings
 
 from . import views
-from .models import CustomUser
+from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
@@ -242,3 +246,123 @@ class SSOLoginTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid')
+
+
+@override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
+class CheckoutPersistenceTests(TestCase):
+    def test_checkout_alumni_saves_whatsapp_and_cohort_year_to_transaction(self):
+        user = CustomUser.objects.create_user(
+            username='checkout@gmail.com',
+            email='checkout@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/alumni/',
+            {
+                'full_name': 'Bilqis Nisrina',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2022',
+                'study_program': 'Ilmu Komputer',
+                'ticket_quantity': '2',
+                'shirt_size_1': 'M',
+                'shirt_size_2': 'L',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(user=user)
+        self.assertEqual(transaction.whatsapp_number, '081234567890')
+        self.assertEqual(transaction.cohort_year, 2022)
+        self.assertEqual(transaction.tickets.count(), 2)
+
+
+class AdminSpreadsheetTests(TestCase):
+    def setUp(self):
+        self.temp_media_root = tempfile.mkdtemp()
+        self.settings_override = self.settings(
+            MEDIA_ROOT=self.temp_media_root,
+            ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'],
+        )
+        self.settings_override.enable()
+
+        self.admin_user = CustomUser.objects.create_superuser(
+            username='admin',
+            email='admin@example.com',
+            password='Admin;123',
+        )
+        self.client.force_login(self.admin_user)
+
+        self.regular_user = CustomUser.objects.create_user(
+            username='user@gmail.com',
+            email='user@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+            first_name='Budi',
+            last_name='Santoso',
+        )
+
+        self.transaction = Transaction.objects.create(
+            user=self.regular_user,
+            status='PENDING',
+            whatsapp_number='081234567890',
+            cohort_year=2022,
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=self.transaction,
+            attendee_name='Budi Santoso',
+            package_type='ALUMNI_PACK',
+            tshirt_size='L',
+            price=Decimal('275000'),
+        )
+
+    def tearDown(self):
+        self.settings_override.disable()
+        shutil.rmtree(self.temp_media_root, ignore_errors=True)
+
+    def test_admin_latest_spreadsheet_export_always_uses_newest_transaction_data(self):
+        first_response = self.client.get('/admin/registration/transaction/export/latest/')
+        first_csv = first_response.content.decode('utf-8-sig')
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertIn(self.transaction.transaction_id, first_csv)
+        first_line_count = len([line for line in first_csv.splitlines() if line.strip()])
+
+        second_transaction = Transaction.objects.create(
+            user=self.regular_user,
+            status='PAID',
+            total_amount=Decimal('50000'),
+        )
+        Ticket.objects.create(
+            transaction=second_transaction,
+            attendee_name='Budi Santoso',
+            package_type='TICKET_ONLY',
+            tshirt_size='NONE',
+            price=Decimal('50000'),
+        )
+
+        second_response = self.client.get('/admin/registration/transaction/export/latest/')
+        second_csv = second_response.content.decode('utf-8-sig')
+        second_line_count = len([line for line in second_csv.splitlines() if line.strip()])
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertIn(second_transaction.transaction_id, second_csv)
+        self.assertGreater(second_line_count, first_line_count)
+        self.assertIn('081234567890', second_csv)
+        self.assertIn('2022', second_csv)
+
+    def test_admin_can_create_new_backup_snapshot_file_from_current_responses(self):
+        response = self.client.get('/admin/registration/transaction/backup/create/', follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TransactionSpreadsheetBackup.objects.count(), 1)
+
+        backup = TransactionSpreadsheetBackup.objects.get()
+        self.assertEqual(backup.transaction_count, 1)
+        self.assertEqual(backup.response_count, 1)
+        self.assertTrue(backup.file.name.endswith('.csv'))
+        self.assertTrue(os.path.exists(backup.file.path))

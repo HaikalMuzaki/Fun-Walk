@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+    <a class="button" href="{{ download_latest_url }}">Download Spreadsheet Terbaru</a>
+    <a class="button" href="{{ create_backup_url }}">Buat Backup Spreadsheet Baru</a>
+  </div>
+
+  <p style="margin-bottom: 16px;">
+    Halaman ini selalu mengambil data langsung dari database saat dibuka.
+    Saat ada transaksi baru, daftar ini ikut ter-update tanpa perlu membuat file lama.
+  </p>
+
+  <div style="margin-bottom: 16px;">
+    <strong>Total transaksi:</strong> {{ transaction_count }}<br>
+    <strong>Total baris response:</strong> {{ row_count }}
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table id="result_list">
+      <thead>
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            {% for value in row %}
+              <td>{{ value }}</td>
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length }}">Belum ada response transaksi yang tercatat.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
