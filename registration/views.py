@@ -401,13 +401,11 @@ def sso_login_callback(request):
     except ParseError:
         messages.error(
             request,
-            'Respons verifikasi dari SSO UI tidak valid. Biasanya ini terjadi karena callback localhost belum didukung oleh SSO UI.',
         )
         return redirect('login')
     except (RequestException, CASError):
         messages.error(
             request,
-            'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid. Jika ini masih di localhost, kemungkinan callback belum didukung.',
         )
         return redirect('login')
 
