@@ -477,8 +477,8 @@ def sso_login(request):
         return redirect(_get_safe_next_url(request) or 'index')
 
     # --- UBAH NAMA DI BAWAH INI UNTUK TESTING AKUN BERBEDA ---
-    test_username = 'naila.haikal' 
-    test_email = 'naila.haikal@ui.ac.id'
+    test_username = 'test.user1' 
+    test_email = 'test.user1@ui.ac.id'
 
     user, created = User.objects.get_or_create(username=test_username)
     
