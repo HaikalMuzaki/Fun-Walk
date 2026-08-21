@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-nq-b@rbpm+4xiday4pxzooolcr%sw)+qo1a$^hi0m5_(zg+kdw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'funwalk.cs.ui.ac.id']
 
 
 # Application definition
