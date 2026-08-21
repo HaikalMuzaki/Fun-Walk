@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # ================= PRODUCTION =================
+  db-prod:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: funwalk_prod
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
+  web-prod:
+    build: .
+    command: gunicorn --bind 0.0.0.0:8000 core.wsgi:application
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=funwalk_prod
+      - DB_USER=admin
+      - DB_PASSWORD=supersecretpassword
+      - DB_HOST=db-prod
+    depends_on:
+      - db-prod
+
+  # ================= STAGING =================
+  db-staging:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: funwalk_staging
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+
+  web-staging:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8001
+    ports:
+      - "8001:8001"
+    environment:
+      - DB_NAME=funwalk_staging
+      - DB_USER=admin
+      - DB_PASSWORD=supersecretpassword
+      - DB_HOST=db-staging
+    depends_on:
+      - db-staging
+
+volumes:
+  postgres_data_prod:
+  postgres_data_staging:
