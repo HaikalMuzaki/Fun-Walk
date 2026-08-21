@@ -1,7 +1,14 @@
 import logging
+import json
+import time
+import hmac
+import hashlib
+import requests
 from decimal import Decimal
 from xml.etree.ElementTree import ParseError
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
@@ -497,14 +504,19 @@ def sso_login(request):
 def checkout_alumni(request):
     if request.method == 'POST':
         try:
+            # 1. Simpan data ke database
             transaction_obj = _create_checkout_transaction(request, 'ALUMNI_PACK')
-            # Simpan data ke session untuk dipakai di payment_page
-            request.session['payment_ticket_type'] = 'Paket Alumni'
-            request.session['payment_quantity'] = transaction_obj.tickets.count()
-            return redirect('payment_page')
+            
+            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
+            finpay_url = initiate_finpay_payment(transaction_obj, request)
+            
+            # 3. Lempar user ke halaman Finpay
+            return redirect(finpay_url)
         except ValueError as error:
+            # Menangkap error validasi form atau error dari API Gateway
             messages.error(request, str(error))
     return render(request, 'registration/checkout-alumni.html')
+
 
 @login_required
 def checkout_mahasiswa(request):
@@ -516,7 +528,7 @@ def checkout_mahasiswa(request):
         )
         return redirect('index')
 
-    # Validasi 2 (REVISI): Query langsung ke tabel Ticket (Pasti terbaca oleh Django)
+    # Validasi 2: Query langsung ke tabel Ticket (Pasti terbaca oleh Django)
     existing_student_tickets = Ticket.objects.filter(
         transaction__user=request.user,
         package_type='STUDENT_PACK'
@@ -534,23 +546,32 @@ def checkout_mahasiswa(request):
     # Proses form jika validasi lolos
     if request.method == 'POST':
         try:
+            # 1. Simpan data ke database
             transaction_obj = _create_checkout_transaction(request, 'STUDENT_PACK')
-            request.session['payment_ticket_type'] = 'Paket Mahasiswa Aktif'
-            request.session['payment_quantity'] = transaction_obj.tickets.count()
-            return redirect('payment_page')
+            
+            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
+            finpay_url = initiate_finpay_payment(transaction_obj, request)
+            
+            # 3. Lempar user ke halaman Finpay
+            return redirect(finpay_url)
         except ValueError as error:
             messages.error(request, str(error))
             
     return render(request, 'registration/checkout-mahasiswa.html')
 
+
 @login_required
 def checkout_non_paket(request):
     if request.method == 'POST':
         try:
+            # 1. Simpan data ke database
             transaction_obj = _create_checkout_transaction(request, 'TICKET_ONLY')
-            request.session['payment_ticket_type'] = 'Non-Paket'
-            request.session['payment_quantity'] = transaction_obj.tickets.count()
-            return redirect('payment_page')
+            
+            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
+            finpay_url = initiate_finpay_payment(transaction_obj, request)
+            
+            # 3. Lempar user ke halaman Finpay
+            return redirect(finpay_url)
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-non-paket.html')
@@ -599,3 +620,122 @@ def payment_page(request):
     }
     
     return render(request, 'registration/payment.html', context)
+
+def generate_signed_headers(api_key, signing_secret, method, path, body_dict):
+    timestamp = str(int(time.time()))
+    
+    # Konversi dictionary ke string JSON tanpa spasi ekstra untuk konsistensi hash
+    body_str = json.dumps(body_dict, separators=(',', ':')) if body_dict else ""
+    
+    # Hash SHA256 dari body request
+    body_hash = hashlib.sha256(body_str.encode('utf-8')).hexdigest()
+    
+    # Penggabungan payload sesuai rumus
+    payload = f"{timestamp}.{method.upper()}.{path}.{body_hash}"
+    
+    # Pembuatan HMAC-SHA256 menggunakan signing_secret
+    signature = hmac.new(
+        signing_secret.encode('utf-8'),
+        payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return {
+        "X-Api-Key": api_key,
+        "X-Timestamp": timestamp,
+        "X-Signature": signature,
+        "Content-Type": "application/json",
+    }
+
+def initiate_finpay_payment(transaction_obj, request):
+    # Dapatkan API_KEY dan SIGNING_SECRET dari dosen/DTD
+    API_KEY = "dummy_api_key_disini"
+    SIGNING_SECRET = "dummy_signing_secret_disini"
+    
+    BASE_URL = "https://dev-payment.ui.ac.id"
+    PATH = "/api/v1/gateway/payments"
+    
+    # Format nomor telepon ke standar E.164
+    raw_phone = transaction_obj.whatsapp_number
+    e164_phone = f"+62{raw_phone.lstrip('0')}"
+    
+    # Susun Body Request
+    body = {
+        "idempotency_key": f"FUNWALK-{transaction_obj.id}",
+        "amount": int(transaction_obj.total_amount),
+        "currency": "IDR",
+        "description": f"Registrasi Fun Walk Dies Natalis 40 - {transaction_obj.user.username}",
+        "customer": {
+            "first_name": transaction_obj.user.first_name or "Mahasiswa",
+            "last_name": transaction_obj.user.last_name or "UI",
+            "email": transaction_obj.user.email,
+            "mobile_phone": e164_phone
+        },
+        "url": {
+            "success_url": request.build_absolute_uri('/history/'),
+            "fail_url": request.build_absolute_uri('/history/'),
+            "back_url": request.build_absolute_uri('/payment/')
+        }
+    }
+
+    # Generate Headers menggunakan fungsi sebelumnya
+    headers = generate_signed_headers(API_KEY, SIGNING_SECRET, "POST", PATH, body)
+
+    # Kirim HTTP POST Request
+    response = requests.post(f"{BASE_URL}{PATH}", headers=headers, json=body)
+    
+    if response.status_code in [200, 201]:
+        response_data = response.json()
+        # Ekstraksi URL berdasarkan Swagger UI
+        redirect_url = response_data.get("data", {}).get("finpay_redirect_url")
+        return redirect_url
+    else:
+        raise ValueError(f"Gateway Error {response.status_code}: {response.text}")
+
+@csrf_exempt
+@require_POST
+def payment_callback(request):
+    try:
+        # 1. Baca payload JSON yang dikirim oleh Gateway UI
+        payload = json.loads(request.body)
+        
+        # 2. Ambil ID Transaksi dan Statusnya
+        # Dokumen DTD menyebutkan kita bisa pakai idempotency_key atau order_id
+        order_id = payload.get('idempotency_key') or payload.get('order_id')
+        status = payload.get('status')
+
+        if not order_id or not status:
+            return JsonResponse({'error': 'Payload tidak lengkap'}, status=400)
+
+        # 3. Ekstrak ID asli transaksi kita (karena tadi formatnya "FUNWALK-{id}")
+        if order_id.startswith('FUNWALK-'):
+            tx_id = order_id.split('-')[1]
+        else:
+            return JsonResponse({'error': 'Format order_id tidak dikenali'}, status=400)
+
+        # 4. Cari transaksi di database
+        try:
+            transaction_obj = Transaction.objects.get(id=tx_id)
+        except Transaction.DoesNotExist:
+            return JsonResponse({'error': 'Transaksi tidak ditemukan'}, status=404)
+
+        # 5. Idempotency Check: Kalau udah PAID, gausah diapa-apain lagi[cite: 1]
+        if transaction_obj.status == 'PAID':
+            return JsonResponse({'message': 'Transaksi sudah lunas sebelumnya'}, status=200)
+
+        # 6. Update status berdasarkan mapping DTD[cite: 1]
+        if status == 'success':
+            transaction_obj.status = 'PAID'
+        elif status in ['failed', 'cancelled', 'voided']:
+            transaction_obj.status = 'FAILED'
+        
+        # Simpan perubahan ke database
+        transaction_obj.save(update_fields=['status'])
+
+        # 7. WAJIB balas HTTP 200 supaya sistem Gateway UI berhenti nge-retry[cite: 1]
+        return JsonResponse({'message': 'Callback berhasil diproses'}, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Format JSON tidak valid'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
