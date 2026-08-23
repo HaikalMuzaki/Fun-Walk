@@ -436,8 +436,10 @@ def sso_login(request):
 
 def sso_login_callback(request):
     service_url = get_service_url(request)
-    client = get_cas_client(service_url)
-    login_url = client.get_login_url()
+    client = get_cas_client(service_url, request=request)
+    renew_client = get_cas_client(service_url, request=request)
+    renew_client.renew = True
+    login_url = renew_client.get_login_url()
     ticket = request.GET.get('ticket')
 
     if not ticket:

@@ -3,6 +3,7 @@ from django.test import RequestFactory
 from xml.etree.ElementTree import ParseError
 from requests.exceptions import RequestException
 from unittest.mock import patch
+from unittest.mock import Mock
 from decimal import Decimal
 import os
 import shutil
@@ -165,6 +166,22 @@ class SSOLoginTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/login/sso/callback/')
         self.assertEqual(self.client.session['sso_next_url'], '/checkout/mahasiswa/')
+
+    @patch('registration.views.get_cas_client')
+    def test_sso_callback_without_ticket_forces_credential_reentry(self, mocked_get_cas_client):
+        verify_client = Mock()
+        renew_client = Mock()
+        renew_client.get_login_url.return_value = 'https://sso.ui.ac.id/cas2/login?service=test&renew=true'
+        mocked_get_cas_client.side_effect = [verify_client, renew_client]
+
+        response = self.client.get(
+            '/login/sso/callback/',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, 'https://sso.ui.ac.id/cas2/login?service=test&renew=true')
+        self.assertTrue(renew_client.renew)
 
     def test_sync_sso_student_user_creates_student_account_without_password(self):
         sso_profile = {
