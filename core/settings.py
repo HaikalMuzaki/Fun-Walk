@@ -26,6 +26,8 @@ SECRET_KEY = 'django-insecure-nq-b@rbpm+4xiday4pxzooolcr%sw)+qo1a$^hi0m5_(zg+kdw
 DEBUG = True
 
 ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'funwalk.cs.ui.ac.id']
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -146,4 +148,4 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SSO_UI_URL = 'https://sso.ui.ac.id/cas2/'
-SSO_UI_FORCE_SERVICE_HTTPS = not DEBUG
+SSO_UI_FORCE_SERVICE_HTTPS = os.environ.get('SSO_UI_FORCE_SERVICE_HTTPS', 'false').lower() == 'true'
