@@ -4,6 +4,10 @@ import time
 import hmac
 import hashlib
 import requests
+import requests
+import uuid
+from django.conf import settings
+from django.shortcuts import redirect
 from decimal import Decimal
 from xml.etree.ElementTree import ParseError
 from django.http import JsonResponse
