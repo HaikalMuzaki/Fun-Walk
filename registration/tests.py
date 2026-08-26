@@ -1,7 +1,7 @@
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 from xml.etree.ElementTree import ParseError
-from requests.exceptions import RequestException
+from requests.exceptions import ConnectTimeout, RequestException
 from unittest.mock import patch
 from unittest.mock import Mock
 from decimal import Decimal
@@ -13,6 +13,7 @@ from django.test import TestCase, override_settings
 
 from . import views
 from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
+from .payment_gateway import initiate_payment
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
@@ -332,6 +333,70 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, 'https://payment.example/retry')
         self.assertNotEqual(transaction.idempotency_key, original_key)
+
+
+@override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
+class PaymentGatewayFallbackTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = CustomUser.objects.create_user(
+            username='gateway@gmail.com',
+            email='gateway@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING',
+            whatsapp_number='081234567890',
+            cohort_year=2022,
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=self.transaction,
+            attendee_name='Gateway User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+        self.request = self.factory.get('/', HTTP_HOST='127.0.0.1')
+
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://dev-payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': 'https://payment.ui.ac.id',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_uses_fallback_base_url_when_primary_times_out(self, mocked_post):
+        timeout_error = ConnectTimeout('primary timeout')
+        success_response = Mock()
+        success_response.status_code = 201
+        success_response.json.return_value = {
+            'success': True,
+            'message': 'payment initiated',
+            'data': {
+                'transaction_id': 'gateway-uuid',
+                'status': 'initiated',
+                'redirect_url': 'https://payment.ui.ac.id/pay/example',
+            },
+        }
+        mocked_post.side_effect = [timeout_error, success_response]
+
+        redirect_url = initiate_payment(self.transaction, self.request, 'Paket Alumni')
+        self.transaction.refresh_from_db()
+
+        self.assertEqual(redirect_url, 'https://payment.ui.ac.id/pay/example')
+        self.assertEqual(mocked_post.call_count, 2)
+        self.assertEqual(
+            mocked_post.call_args_list[1].args[0],
+            'https://payment.ui.ac.id/api/v1/gateway/payments',
+        )
+        self.assertEqual(self.transaction.payment_redirect_url, 'https://payment.ui.ac.id/pay/example')
 
 
 class AdminSpreadsheetTests(TestCase):

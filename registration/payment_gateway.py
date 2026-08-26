@@ -8,6 +8,7 @@ import time
 import requests
 from django.urls import reverse
 from django.utils import timezone
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ def get_payment_gateway_config():
     api_key = _get_env('PAYMENT_GATEWAY_API_KEY', 'FINPAY_API_KEY')
     signing_secret = _get_env('PAYMENT_GATEWAY_SIGNING_SECRET', 'FINPAY_SIGNING_SECRET')
     base_url = _get_env('PAYMENT_GATEWAY_BASE_URL', 'FINPAY_BASE_URL', default='https://dev-payment.ui.ac.id')
+    fallback_base_url = _get_env('PAYMENT_GATEWAY_FALLBACK_BASE_URL', default='')
     verify_callback_status = (
         _get_env('PAYMENT_GATEWAY_VERIFY_CALLBACK_STATUS', default='false').lower() == 'true'
     )
@@ -50,8 +52,24 @@ def get_payment_gateway_config():
         'api_key': api_key,
         'signing_secret': signing_secret,
         'base_url': base_url.rstrip('/'),
+        'fallback_base_url': fallback_base_url.rstrip('/'),
         'verify_callback_status': verify_callback_status,
     }
+
+
+def get_payment_gateway_base_urls(config):
+    base_urls = []
+    for candidate in [config['base_url'], config['fallback_base_url']]:
+        if candidate and candidate not in base_urls:
+            base_urls.append(candidate)
+
+    if (
+        config['base_url'] == 'https://dev-payment.ui.ac.id'
+        and 'https://payment.ui.ac.id' not in base_urls
+    ):
+        base_urls.append('https://payment.ui.ac.id')
+
+    return base_urls
 
 
 def split_name(full_name):
@@ -149,6 +167,31 @@ def store_initiate_response(transaction_obj, response_data, redirect_url):
     )
 
 
+def _request_with_base_url_failover(method, path, headers, body_bytes=None, timeout=30):
+    config = get_payment_gateway_config()
+    request_errors = []
+
+    for base_url in get_payment_gateway_base_urls(config):
+        try:
+            if method.upper() == 'POST':
+                return requests.post(
+                    f'{base_url}{path}',
+                    headers=headers,
+                    data=body_bytes,
+                    timeout=timeout,
+                )
+            return requests.get(
+                f'{base_url}{path}',
+                headers=headers,
+                timeout=timeout,
+            )
+        except RequestException as error:
+            request_errors.append(f'{base_url}: {error}')
+            logger.warning('Request ke payment gateway gagal via %s: %s', base_url, error)
+
+    raise ValueError('Koneksi ke payment gateway gagal: ' + ' | '.join(request_errors))
+
+
 def initiate_payment(transaction_obj, request, package_label):
     config = get_payment_gateway_config()
     payload = build_initiate_payload(transaction_obj, request, package_label)
@@ -162,14 +205,15 @@ def initiate_payment(transaction_obj, request, package_label):
     )
 
     try:
-        response = requests.post(
-            f"{config['base_url']}{PAYMENT_GATEWAY_PATH}",
-            headers=headers,
-            data=request_body.encode('utf-8'),
+        response = _request_with_base_url_failover(
+            'POST',
+            PAYMENT_GATEWAY_PATH,
+            headers,
+            body_bytes=request_body.encode('utf-8'),
             timeout=30,
         )
-    except requests.RequestException as error:
-        raise ValueError(f'Koneksi ke payment gateway gagal: {error}') from error
+    except ValueError:
+        raise
 
     try:
         response_data = response.json()
@@ -203,12 +247,13 @@ def fetch_payment_status(transaction_obj):
     )
 
     try:
-        response = requests.get(
-            f"{config['base_url']}{path}",
-            headers=headers,
+        response = _request_with_base_url_failover(
+            'GET',
+            path,
+            headers,
             timeout=30,
         )
-    except requests.RequestException as error:
+    except ValueError as error:
         raise ValueError(f'Gagal mengambil status payment gateway: {error}') from error
 
     try:
