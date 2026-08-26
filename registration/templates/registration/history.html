@@ -44,7 +44,24 @@
     </div>
    </div>
   </header>
+  
   <main class="history-section">
+   {% if messages %}
+   <div style="margin-bottom: 20px;">
+    {% for message in messages %}
+     {% if message.tags == 'error' %}
+     <div style="padding: 10px; border-radius: 5px; background-color: #ffdddd; color: #d8000c; margin-bottom: 10px;">
+      {{ message }}
+     </div>
+     {% else %}
+     <div style="padding: 10px; border-radius: 5px; background-color: #d4edda; color: #155724; margin-bottom: 10px;">
+      {{ message }}
+     </div>
+     {% endif %}
+    {% endfor %}
+   </div>
+   {% endif %}
+
    {% if history_items %}
    <div class="history-list">
     {% for item in history_items %}
@@ -100,6 +117,16 @@
        {{ item.total_amount }}
       </span>
      </div>
+
+     {% if item.raw_status == 'PENDING' %}
+     <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin-top: 15px;">
+      {% csrf_token %}
+      <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+       Lanjutkan Pembayaran
+      </button>
+     </form>
+     {% endif %}
+
     </article>
     {% endfor %}
    </div>
@@ -114,6 +141,7 @@
    </div>
    {% endif %}
   </main>
+  
   <footer class="footer">
    <span>
     Fasilkom UI

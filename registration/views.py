@@ -264,6 +264,8 @@ def _build_history_items(user):
         status = STATUS_DETAILS.get(transaction_obj.status, STATUS_DETAILS['PENDING'])
 
         history_items.append({
+            'transaction_id': transaction_obj.id,  
+            'raw_status': transaction_obj.status,
             'package_name': PACKAGE_DETAILS[first_ticket.package_type]['label'],
             'status_class': status['class_name'],
             'status_label': status['label'],
@@ -674,6 +676,32 @@ def initiate_finpay_payment(transaction_obj, request):
         return redirect_url
     else:
         raise ValueError(f"Gateway Error {response.status_code}: {response.text}")
+
+@login_required
+def retry_payment(request, transaction_id):
+    if request.method == 'POST':
+        try:
+            # 1. Cari transaksi yang nyangkut (harus milik user login & status PENDING)
+            transaction_obj = Transaction.objects.get(
+                id=transaction_id, 
+                user=request.user, 
+                status='PENDING'
+            )
+            
+            # 2. Tembak ulang API Gateway UI
+            finpay_url = initiate_finpay_payment(transaction_obj, request)
+            
+            # 3. Lempar user ke halaman Finpay yang baru
+            return redirect(finpay_url)
+            
+        except Transaction.DoesNotExist:
+            messages.error(request, "Transaksi tidak ditemukan atau sudah tidak berstatus PENDING.")
+            return redirect('history')
+        except ValueError as error:
+            messages.error(request, f"Gagal membuat link pembayaran: {str(error)}")
+            return redirect('history')
+            
+    return redirect('history')
 
 @csrf_exempt
 @require_POST
