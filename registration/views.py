@@ -633,17 +633,17 @@ def generate_signed_headers(api_key, signing_secret, method, path, body_dict):
     }
 
 def initiate_finpay_payment(transaction_obj, request):
-    # Dapatkan API_KEY dan SIGNING_SECRET dari dosen/DTD
+    # Dapatkan API_KEY dan SIGNING_SECRET dari environment
     API_KEY = os.environ.get("FINPAY_API_KEY")
     SIGNING_SECRET = os.environ.get("FINPAY_SIGNING_SECRET")
-    
+
     BASE_URL = "https://dev-payment.ui.ac.id"
     PATH = "/api/v1/gateway/payments"
-    
+
     # Format nomor telepon ke standar E.164
     raw_phone = transaction_obj.whatsapp_number
     e164_phone = f"+62{raw_phone.lstrip('0')}"
-    
+
     # Susun Body Request
     body = {
         "idempotency_key": f"FUNWALK-{transaction_obj.id}",
@@ -666,16 +666,25 @@ def initiate_finpay_payment(transaction_obj, request):
     # Generate Headers menggunakan fungsi sebelumnya
     headers = generate_signed_headers(API_KEY, SIGNING_SECRET, "POST", PATH, body)
 
-    # Kirim HTTP POST Request
-    response = requests.post(f"{BASE_URL}{PATH}", headers=headers, json=body)
-    
-    if response.status_code in [200, 201]:
-        response_data = response.json()
-        # Ekstraksi URL berdasarkan Swagger UI
-        redirect_url = response_data.get("data", {}).get("finpay_redirect_url")
-        return redirect_url
-    else:
-        raise ValueError(f"Gateway Error {response.status_code}: {response.text}")
+    # Kirim HTTP POST Request dengan penangkal Hang (Timeout & Try-Except)
+    try:
+        # Maksimal nunggu 10 detik, kalau lebih dari itu langsung putus
+        response = requests.post(f"{BASE_URL}{PATH}", headers=headers, json=body, timeout=10)
+        
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            # Ekstraksi URL berdasarkan Swagger UI
+            redirect_url = response_data.get("data", {}).get("finpay_redirect_url")
+            return redirect_url
+        else:
+            raise ValueError(f"Gateway Error {response.status_code}: {response.text}")
+            
+    except requests.exceptions.Timeout:
+        # Menangkap error jika koneksi nyangkut lebih dari 10 detik
+        raise ValueError("Koneksi ke Payment Gateway UI terputus (Timeout). Sistem sedang sibuk atau diblokir.")
+    except requests.exceptions.RequestException as e:
+        # Menangkap error jaringan lainnya (DNS gagal, server down, dll)
+        raise ValueError(f"Gagal menghubungi Payment Gateway UI: Koneksi ditolak.")
 
 @login_required
 def retry_payment(request, transaction_id):
