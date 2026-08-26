@@ -28,13 +28,28 @@ class Transaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name="Nomor WhatsApp")
     cohort_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Tahun Angkatan")
+    idempotency_key = models.CharField(max_length=80, unique=True, editable=False, blank=True)
+    gateway_transaction_id = models.CharField(max_length=120, blank=True, default='', verbose_name="ID Transaksi Gateway")
+    gateway_status = models.CharField(max_length=50, blank=True, default='', verbose_name="Status Gateway")
+    payment_channel = models.CharField(max_length=50, blank=True, default='', verbose_name="Channel Pembayaran")
+    payment_type = models.CharField(max_length=50, blank=True, default='', verbose_name="Tipe Pembayaran")
+    payment_redirect_url = models.URLField(max_length=500, blank=True, default='', verbose_name="Redirect URL Payment")
+    gateway_response_payload = models.JSONField(blank=True, null=True, verbose_name="Payload Response Gateway")
+    gateway_callback_payload = models.JSONField(blank=True, null=True, verbose_name="Payload Callback Gateway")
+    paid_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Lunas")
+    failed_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Gagal")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         if not self.transaction_id:
             self.transaction_id = f"TRX-{uuid.uuid4().hex[:8].upper()}"
+        if not self.idempotency_key:
+            self.idempotency_key = f"PAY-{uuid.uuid4().hex[:20].upper()}"
         super().save(*args, **kwargs)
+
+    def rotate_idempotency_key(self):
+        self.idempotency_key = f"PAY-{uuid.uuid4().hex[:20].upper()}"
 
     def __str__(self):
         return f"{self.transaction_id} - {self.user.username} - {self.status}"

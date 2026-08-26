@@ -267,7 +267,8 @@ class SSOLoginTests(TestCase):
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class CheckoutPersistenceTests(TestCase):
-    def test_checkout_alumni_saves_whatsapp_and_cohort_year_to_transaction(self):
+    @patch('registration.views.initiate_payment', return_value='https://payment.example/redirect')
+    def test_checkout_alumni_saves_whatsapp_and_cohort_year_to_transaction(self, mocked_initiate_payment):
         user = CustomUser.objects.create_user(
             username='checkout@gmail.com',
             email='checkout@gmail.com',
@@ -295,6 +296,42 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.whatsapp_number, '081234567890')
         self.assertEqual(transaction.cohort_year, 2022)
         self.assertEqual(transaction.tickets.count(), 2)
+
+    @patch('registration.views.initiate_payment', return_value='https://payment.example/retry')
+    def test_retry_payment_rotates_idempotency_key_when_redirect_url_missing(self, mocked_initiate_payment):
+        user = CustomUser.objects.create_user(
+            username='retry@gmail.com',
+            email='retry@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        transaction = Transaction.objects.create(
+            user=user,
+            status='PENDING',
+            whatsapp_number='081234567890',
+            cohort_year=2022,
+            total_amount=Decimal('275000'),
+        )
+        original_key = transaction.idempotency_key
+        Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Retry User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            f'/history/retry-payment/{transaction.id}/',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        transaction.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, 'https://payment.example/retry')
+        self.assertNotEqual(transaction.idempotency_key, original_key)
 
 
 class AdminSpreadsheetTests(TestCase):

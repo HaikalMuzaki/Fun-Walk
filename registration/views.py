@@ -1,42 +1,36 @@
-import logging
 import json
-import time
-import hmac
-import hashlib
-import requests
-import requests
-import uuid
-import os
-from django.conf import settings
-from django.shortcuts import redirect
+import logging
 from decimal import Decimal
 from xml.etree.ElementTree import ParseError
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout, get_user_model
+
+from cas import CASError
 from django.contrib import messages
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from email_validator import EmailNotValidError, validate_email as validate_registration_email
 from requests.exceptions import RequestException
-import random
 
 from .models import Ticket, Transaction
+from .payment_gateway import (
+    apply_callback_payload,
+    initiate_payment,
+    is_terminal_local_status,
+    verify_callback_status_if_needed,
+)
 from .sso_compat import ensure_django_six_compat
 
 ensure_django_six_compat()
 
-from cas import CASError
-from django_sso_ui.utils import (
-    authenticate as sso_authenticate,
-    get_cas_client,
-    get_service_url,
-)
+from django_sso_ui.utils import authenticate as sso_authenticate
+from django_sso_ui.utils import get_cas_client, get_service_url
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -125,6 +119,22 @@ def _get_first_non_empty_value(data, *keys):
         if value:
             return value
     return ''
+
+
+def _get_transaction_by_reference(reference):
+    normalized_reference = (reference or '').strip()
+    if not normalized_reference:
+        raise Transaction.DoesNotExist
+
+    transaction_obj = Transaction.objects.filter(idempotency_key=normalized_reference).first()
+    if transaction_obj is not None:
+        return transaction_obj
+
+    transaction_obj = Transaction.objects.filter(transaction_id=normalized_reference).first()
+    if transaction_obj is not None:
+        return transaction_obj
+
+    raise Transaction.DoesNotExist
 
 
 def _get_email_registration_error(email):
@@ -264,7 +274,7 @@ def _build_history_items(user):
         status = STATUS_DETAILS.get(transaction_obj.status, STATUS_DETAILS['PENDING'])
 
         history_items.append({
-            'transaction_id': transaction_obj.id,  
+            'transaction_id': transaction_obj.id,
             'raw_status': transaction_obj.status,
             'package_name': PACKAGE_DETAILS[first_ticket.package_type]['label'],
             'status_class': status['class_name'],
@@ -339,21 +349,37 @@ def _create_checkout_transaction(request, package_type):
 
     return transaction_obj
 
+
+def _start_checkout_payment_flow(request, package_type):
+    transaction_obj = _create_checkout_transaction(request, package_type)
+    package_label = PACKAGE_DETAILS[package_type]['label']
+
+    try:
+        return initiate_payment(transaction_obj, request, package_label)
+    except ValueError:
+        if not is_terminal_local_status(transaction_obj.status):
+            transaction_obj.gateway_status = 'initiation_failed'
+            transaction_obj.failed_at = timezone.now()
+            transaction_obj.save(update_fields=['gateway_status', 'failed_at'])
+        raise
+
+
 def index(request):
     has_bought_student_pack = False
-    
-    # Cek apakah user udah login dan dia mahasiswa
+
     if request.user.is_authenticated and _is_student_sso_user(request.user):
-        # Cek apakah udah punya tiket mahasiswa yang PAID
         has_bought_student_pack = Ticket.objects.filter(
             transaction__user=request.user,
             transaction__status='PAID',
-            package_type='STUDENT_PACK'
+            package_type='STUDENT_PACK',
         ).exists()
-        
-    return render(request, 'registration/index.html', {
-        'has_bought_student_pack': has_bought_student_pack
-    })
+
+    return render(
+        request,
+        'registration/index.html',
+        {'has_bought_student_pack': has_bought_student_pack},
+    )
+
 
 def _get_safe_next_url(request):
     next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
@@ -367,7 +393,6 @@ def _get_safe_next_url(request):
 
 
 def login_view(request):
-    # Kalau sudah login, langsung lempar ke halaman depan
     if request.user.is_authenticated:
         return redirect('index')
 
@@ -378,7 +403,7 @@ def login_view(request):
         password = request.POST.get('password')
 
         if not email or not password:
-            messages.error(request, "Email dan password wajib diisi.")
+            messages.error(request, 'Email dan password wajib diisi.')
             return render(request, 'registration/login.html', {'next_url': next_url})
 
         user_exists = User.objects.filter(email__iexact=email).order_by('id').first()
@@ -386,7 +411,7 @@ def login_view(request):
             if not user_exists.has_usable_password():
                 messages.error(
                     request,
-                    "Email ini sudah terhubung ke akun SSO UI. Silakan login dengan Continue with SSO.",
+                    'Email ini sudah terhubung ke akun SSO UI. Silakan login dengan Continue with SSO.',
                 )
                 return render(request, 'registration/login.html', {'next_url': next_url})
 
@@ -395,10 +420,9 @@ def login_view(request):
                 login(request, auth_user)
                 return redirect(next_url or 'index')
 
-            messages.error(request, "Email sudah terdaftar, tetapi password salah.")
+            messages.error(request, 'Email sudah terdaftar, tetapi password salah.')
             return render(request, 'registration/login.html', {'next_url': next_url})
 
-        # Skenario 2: Email belum ada -> Proses Register sekaligus Login
         email_error, normalized_email = _get_email_registration_error(email)
         if email_error:
             messages.error(request, email_error)
@@ -408,13 +432,11 @@ def login_view(request):
         if password_errors:
             messages.error(
                 request,
-                "Password untuk akun baru harus mengandung "
-                + ", ".join(password_errors)
-                + ".",
+                'Password untuk akun baru harus mengandung ' + ', '.join(password_errors) + '.',
             )
             return render(request, 'registration/login.html', {'next_url': next_url})
 
-        new_user = User.objects.create_user(
+        User.objects.create_user(
             username=normalized_email,
             email=normalized_email,
             password=password,
@@ -474,7 +496,7 @@ def sso_login_callback(request):
         )
         messages.error(
             request,
-            'Koneksi ke server SSO UI gagal atau callback belum sesuai domain HTTPS yang didaftarkan ke SSO UI.',
+            'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid.',
         )
         return redirect('login')
 
@@ -485,63 +507,47 @@ def sso_login_callback(request):
     )
     return _complete_sso_login(request, sso_profile)
 
+
 @login_required
 def checkout_alumni(request):
     if request.method == 'POST':
         try:
-            # 1. Simpan data ke database
-            transaction_obj = _create_checkout_transaction(request, 'ALUMNI_PACK')
-            
-            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
-            finpay_url = initiate_finpay_payment(transaction_obj, request)
-            
-            # 3. Lempar user ke halaman Finpay
+            finpay_url = _start_checkout_payment_flow(request, 'ALUMNI_PACK')
             return redirect(finpay_url)
         except ValueError as error:
-            # Menangkap error validasi form atau error dari API Gateway
             messages.error(request, str(error))
     return render(request, 'registration/checkout-alumni.html')
 
 
 @login_required
 def checkout_mahasiswa(request):
-    # Validasi 1: Harus akun SSO
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
-            "Paket Mahasiswa Aktif hanya dapat dibeli oleh akun yang login melalui SSO UI."
+            'Paket Mahasiswa Aktif hanya dapat dibeli oleh akun yang login melalui SSO UI.',
         )
         return redirect('index')
 
-    # Validasi 2: Query langsung ke tabel Ticket (Pasti terbaca oleh Django)
     existing_student_tickets = Ticket.objects.filter(
         transaction__user=request.user,
-        package_type='STUDENT_PACK'
+        package_type='STUDENT_PACK',
     ).select_related('transaction')
 
-    # Cek status transaksinya
     for ticket in existing_student_tickets:
         if ticket.transaction.status == 'PENDING':
-            messages.warning(request, "Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di sini.")
+            messages.warning(request, 'Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di sini.')
             return redirect('history')
-        elif ticket.transaction.status == 'PAID':
-            messages.error(request, "Anda telah menggunakan special offer ini.")
+        if ticket.transaction.status == 'PAID':
+            messages.error(request, 'Anda telah menggunakan special offer ini.')
             return redirect('index')
 
-    # Proses form jika validasi lolos
     if request.method == 'POST':
         try:
-            # 1. Simpan data ke database
-            transaction_obj = _create_checkout_transaction(request, 'STUDENT_PACK')
-            
-            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
-            finpay_url = initiate_finpay_payment(transaction_obj, request)
-            
-            # 3. Lempar user ke halaman Finpay
+            finpay_url = _start_checkout_payment_flow(request, 'STUDENT_PACK')
             return redirect(finpay_url)
         except ValueError as error:
             messages.error(request, str(error))
-            
+
     return render(request, 'registration/checkout-mahasiswa.html')
 
 
@@ -549,17 +555,12 @@ def checkout_mahasiswa(request):
 def checkout_non_paket(request):
     if request.method == 'POST':
         try:
-            # 1. Simpan data ke database
-            transaction_obj = _create_checkout_transaction(request, 'TICKET_ONLY')
-            
-            # 2. Tembak API Payment Gateway UI untuk dapat link Finpay
-            finpay_url = initiate_finpay_payment(transaction_obj, request)
-            
-            # 3. Lempar user ke halaman Finpay
+            finpay_url = _start_checkout_payment_flow(request, 'TICKET_ONLY')
             return redirect(finpay_url)
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-non-paket.html')
+
 
 @login_required
 def history(request):
@@ -569,32 +570,45 @@ def history(request):
         {'history_items': _build_history_items(request.user)},
     )
 
+
 def custom_logout(request):
-    logout(request) # Menghapus sesi user
+    logout(request)
     return redirect('index')
 
+
+@login_required
 def payment_page(request):
-    PRICE_MAP = {
-        'Paket Alumni': 275000,
-        'Paket Mahasiswa Aktif': 175000,
-        'Non-Paket': 50000
-    }
+    transaction_reference = (request.GET.get('trx') or '').strip()
+    transaction_obj = None
 
-    # Ambil data dari Session hasil redirect, fallback ke default jika kosong
-    ticket_type = request.session.get('payment_ticket_type', 'Paket Alumni')
-    quantity = request.session.get('payment_quantity', 1)
+    if transaction_reference:
+        try:
+            transaction_obj = _get_transaction_by_reference(transaction_reference)
+        except Transaction.DoesNotExist:
+            messages.error(request, 'Transaksi pembayaran tidak ditemukan.')
+            return redirect('history')
 
-    # Kalkulasi lengkap ala E-Commerce
-    base_price = PRICE_MAP.get(ticket_type, 0)
-    
-    subtotal = base_price * quantity
-    total_bayar = subtotal
+        if transaction_obj.user_id != request.user.id:
+            messages.error(request, 'Anda tidak memiliki akses ke transaksi ini.')
+            return redirect('history')
 
-    # Hapus session agar tidak menyangkut kalau user refresh atau buka form baru
-    if 'payment_ticket_type' in request.session:
-        del request.session['payment_ticket_type']
-    if 'payment_quantity' in request.session:
-        del request.session['payment_quantity']
+    if transaction_obj is None:
+        ticket_type = request.session.get('payment_ticket_type', 'Paket Alumni')
+        quantity = request.session.get('payment_quantity', 1)
+        base_price = {
+            'Paket Alumni': 275000,
+            'Paket Mahasiswa Aktif': 175000,
+            'Non-Paket': 50000,
+        }.get(ticket_type, 0)
+        subtotal = base_price * quantity
+        total_bayar = subtotal
+    else:
+        first_ticket = transaction_obj.tickets.order_by('id').first()
+        ticket_type = PACKAGE_DETAILS[first_ticket.package_type]['label'] if first_ticket else 'Pembayaran'
+        quantity = transaction_obj.tickets.count()
+        total_bayar = int(transaction_obj.total_amount)
+        base_price = int(first_ticket.price) if first_ticket else total_bayar
+        subtotal = total_bayar
 
     context = {
         'ticket_type': ticket_type,
@@ -602,213 +616,143 @@ def payment_page(request):
         'quantity': quantity,
         'subtotal': subtotal,
         'total_bayar': total_bayar,
+        'transaction': transaction_obj,
     }
-    
+
+    request.session.pop('payment_ticket_type', None)
+    request.session.pop('payment_quantity', None)
     return render(request, 'registration/payment.html', context)
 
-def generate_signed_headers(api_key, signing_secret, method, path, body_dict):
-    timestamp = str(int(time.time()))
-    
-    # Konversi dictionary ke string JSON tanpa spasi ekstra untuk konsistensi hash
-    body_str = json.dumps(body_dict, separators=(',', ':')) if body_dict else ""
-    
-    # Hash SHA256 dari body request
-    body_hash = hashlib.sha256(body_str.encode('utf-8')).hexdigest()
-    
-    # Penggabungan payload sesuai rumus
-    payload = f"{timestamp}.{method.upper()}.{path}.{body_hash}"
-    
-    # Pembuatan HMAC-SHA256 menggunakan signing_secret
-    signature = hmac.new(
-        signing_secret.encode('utf-8'),
-        payload.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
-    
-    return {
-        "X-Api-Key": api_key,
-        "X-Timestamp": timestamp,
-        "X-Signature": signature,
-        "Content-Type": "application/json",
-    }
-
-def initiate_finpay_payment(transaction_obj, request):
-    # Dapatkan API_KEY dan SIGNING_SECRET dari environment
-    API_KEY = os.environ.get("FINPAY_API_KEY")
-    SIGNING_SECRET = os.environ.get("FINPAY_SIGNING_SECRET")
-
-    BASE_URL = "https://dev-payment.ui.ac.id"
-    PATH = "/api/v1/gateway/payments"
-
-    # Format nomor telepon ke standar E.164
-    raw_phone = transaction_obj.whatsapp_number
-    e164_phone = f"+62{raw_phone.lstrip('0')}"
-
-    # Susun Body Request
-    body = {
-        "idempotency_key": f"FUNWALK-{transaction_obj.id}",
-        "amount": int(transaction_obj.total_amount),
-        "currency": "IDR",
-        "description": f"Registrasi Fun Walk Dies Natalis 40 - {transaction_obj.user.username}",
-        "customer": {
-            "first_name": transaction_obj.user.first_name or "Mahasiswa",
-            "last_name": transaction_obj.user.last_name or "UI",
-            "email": transaction_obj.user.email,
-            "mobile_phone": e164_phone
-        },
-        "url": {
-            "success_url": request.build_absolute_uri('/history/'),
-            "fail_url": request.build_absolute_uri('/history/'),
-            "back_url": request.build_absolute_uri('/payment/')
-        }
-    }
-
-    # Generate Headers menggunakan fungsi sebelumnya
-    headers = generate_signed_headers(API_KEY, SIGNING_SECRET, "POST", PATH, body)
-
-    # Kirim HTTP POST Request dengan penangkal Hang (Timeout & Try-Except)
-    try:
-        # Maksimal nunggu 10 detik, kalau lebih dari itu langsung putus
-        response = requests.post(f"{BASE_URL}{PATH}", headers=headers, json=body, timeout=10)
-        
-        if response.status_code in [200, 201]:
-            response_data = response.json()
-            # Ekstraksi URL berdasarkan Swagger UI
-            redirect_url = response_data.get("data", {}).get("finpay_redirect_url")
-            return redirect_url
-        else:
-            raise ValueError(f"Gateway Error {response.status_code}: {response.text}")
-            
-    except requests.exceptions.Timeout:
-        # Menangkap error jika koneksi nyangkut lebih dari 10 detik
-        raise ValueError("Koneksi ke Payment Gateway UI terputus (Timeout). Sistem sedang sibuk atau diblokir.")
-    except requests.exceptions.RequestException as e:
-        # Menangkap error jaringan lainnya (DNS gagal, server down, dll)
-        raise ValueError(f"Gagal menghubungi Payment Gateway UI: Koneksi ditolak.")
 
 @login_required
 def retry_payment(request, transaction_id):
     if request.method == 'POST':
         try:
-            # 1. Cari transaksi yang nyangkut (harus milik user login & status PENDING)
             transaction_obj = Transaction.objects.get(
-                id=transaction_id, 
-                user=request.user, 
-                status='PENDING'
+                id=transaction_id,
+                user=request.user,
+                status='PENDING',
             )
-            
-            # 2. Tembak ulang API Gateway UI
-            finpay_url = initiate_finpay_payment(transaction_obj, request)
-            
-            # 3. Lempar user ke halaman Finpay yang baru
+
+            if transaction_obj.payment_redirect_url:
+                return redirect(transaction_obj.payment_redirect_url)
+
+            first_ticket = transaction_obj.tickets.order_by('id').first()
+            if first_ticket is None:
+                messages.error(request, 'Transaksi ini belum memiliki tiket yang valid.')
+                return redirect('history')
+
+            # Retry untuk transaksi lama yang tidak pernah menyimpan redirect URL
+            # harus memakai idempotency key baru agar gateway membuat payment page baru.
+            transaction_obj.rotate_idempotency_key()
+            transaction_obj.gateway_transaction_id = ''
+            transaction_obj.gateway_status = ''
+            transaction_obj.gateway_response_payload = None
+            transaction_obj.gateway_callback_payload = None
+            transaction_obj.save(
+                update_fields=[
+                    'idempotency_key',
+                    'gateway_transaction_id',
+                    'gateway_status',
+                    'gateway_response_payload',
+                    'gateway_callback_payload',
+                ]
+            )
+
+            package_label = PACKAGE_DETAILS[first_ticket.package_type]['label']
+            finpay_url = initiate_payment(transaction_obj, request, package_label)
             return redirect(finpay_url)
-            
+
         except Transaction.DoesNotExist:
-            messages.error(request, "Transaksi tidak ditemukan atau sudah tidak berstatus PENDING.")
+            messages.error(request, 'Transaksi tidak ditemukan atau sudah tidak berstatus PENDING.')
             return redirect('history')
         except ValueError as error:
-            messages.error(request, f"Gagal membuat link pembayaran: {str(error)}")
+            messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
             return redirect('history')
-            
+
     return redirect('history')
+
 
 @csrf_exempt
 @require_POST
 def payment_callback(request):
     try:
-        # 1. Baca payload JSON yang dikirim oleh Gateway UI
         payload = json.loads(request.body)
-        
-        # 2. Ambil ID Transaksi dan Statusnya
-        # Dokumen DTD menyebutkan kita bisa pakai idempotency_key atau order_id
         order_id = payload.get('idempotency_key') or payload.get('order_id')
         status = payload.get('status')
 
         if not order_id or not status:
             return JsonResponse({'error': 'Payload tidak lengkap'}, status=400)
 
-        # 3. Ekstrak ID asli transaksi kita (karena tadi formatnya "FUNWALK-{id}")
-        if order_id.startswith('FUNWALK-'):
-            tx_id = order_id.split('-')[1]
-        else:
-            return JsonResponse({'error': 'Format order_id tidak dikenali'}, status=400)
-
-        # 4. Cari transaksi di database
         try:
-            transaction_obj = Transaction.objects.get(id=tx_id)
+            transaction_obj = _get_transaction_by_reference(order_id)
         except Transaction.DoesNotExist:
             return JsonResponse({'error': 'Transaksi tidak ditemukan'}, status=404)
 
-        # 5. Idempotency Check: Kalau udah PAID, gausah diapa-apain lagi[cite: 1]
-        if transaction_obj.status == 'PAID':
-            return JsonResponse({'message': 'Transaksi sudah lunas sebelumnya'}, status=200)
+        next_status = status.strip().lower()
+        current_gateway_status = transaction_obj.gateway_status.strip().lower() if transaction_obj.gateway_status else ''
+        if current_gateway_status == next_status:
+            return JsonResponse({'message': 'Status transaksi sudah sesuai.'}, status=200)
+        if is_terminal_local_status(transaction_obj.status):
+            return JsonResponse({'message': 'Transaksi sudah berada di status final sebelumnya.'}, status=200)
 
-        # 6. Update status berdasarkan mapping DTD[cite: 1]
-        if status == 'success':
-            transaction_obj.status = 'PAID'
-        elif status in ['failed', 'cancelled', 'voided']:
-            transaction_obj.status = 'FAILED'
-        
-        # Simpan perubahan ke database
-        transaction_obj.save(update_fields=['status'])
+        apply_callback_payload(transaction_obj, payload)
+        verify_callback_status_if_needed(transaction_obj)
 
-        # 7. WAJIB balas HTTP 200 supaya sistem Gateway UI berhenti nge-retry[cite: 1]
         return JsonResponse({'message': 'Callback berhasil diproses'}, status=200)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Format JSON tidak valid'}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as error:
+        return JsonResponse({'error': str(error)}, status=500)
+
 
 @login_required
 def manage_ticket(request):
     if request.method == 'POST':
         transaction_id = request.POST.get('transaction_id')
         action = request.POST.get('action')
-        
+
         try:
-            # 1. Pastikan transaksi milik user yang sedang login dan statusnya PENDING
             transaction_obj = Transaction.objects.get(id=transaction_id, user=request.user, status='PENDING')
-            
+
             if action == 'cancel':
-                # Batalkan pesanan (Ubah status jadi FAILED) agar kuota SSO Mahasiswa tidak terkunci lagi
                 transaction_obj.status = 'FAILED'
-                transaction_obj.save(update_fields=['status'])
-                messages.success(request, "Pesanan berhasil dibatalkan. Kuota promo SSO Anda telah di-reset.")
-                
+                transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
+                transaction_obj.save(update_fields=['status', 'failed_at'])
+                messages.success(request, 'Pesanan berhasil dibatalkan. Kuota promo SSO Anda telah di-reset.')
+
             elif action == 'update':
                 new_sizes_raw = request.POST.get('new_sizes', '')
-                
-                # Bersihkan input user dan ubah ke huruf kapital (e.g. "s, m" jadi ['S', 'M'])
-                sizes_list = [s.strip().upper() for s in new_sizes_raw.split(',') if s.strip()]
-                
-                # Ambil semua tiket milik transaksi ini
+                sizes_list = [size.strip().upper() for size in new_sizes_raw.split(',') if size.strip()]
                 tickets = transaction_obj.tickets.all().order_by('id')
-                
-                # Validasi: Jika Non-paket, tolak pengubahan ukuran
+
                 if not tickets or tickets[0].package_type == 'TICKET_ONLY':
-                    messages.error(request, "Paket ini tidak termasuk kaos, tidak ada ukuran yang bisa diubah.")
+                    messages.error(request, 'Paket ini tidak termasuk kaos, tidak ada ukuran yang bisa diubah.')
                     return redirect('history')
-                    
-                # Validasi: Jumlah ukuran yang diketik harus sama dengan jumlah tiket yang dibeli
+
                 if len(sizes_list) != tickets.count():
-                    messages.error(request, f"Gagal update. Jumlah ukuran kaos yang dimasukkan ({len(sizes_list)}) tidak sesuai dengan jumlah tiket Anda ({tickets.count()}).")
+                    messages.error(
+                        request,
+                        f'Gagal update. Jumlah ukuran kaos yang dimasukkan ({len(sizes_list)}) tidak sesuai dengan jumlah tiket Anda ({tickets.count()}).',
+                    )
                     return redirect('history')
-                    
-                # Validasi: Pastikan input ukurannya masuk akal (XS, S, M, L, XL, XXL+)
-                invalid_sizes = [s for s in sizes_list if s not in VALID_TSHIRT_SIZES]
+
+                invalid_sizes = [size for size in sizes_list if size not in VALID_TSHIRT_SIZES]
                 if invalid_sizes:
-                    messages.error(request, f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL+")
+                    messages.error(
+                        request,
+                        f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL+",
+                    )
                     return redirect('history')
-                    
-                # Update database secara terstruktur step-by-step
+
                 for index, ticket in enumerate(tickets):
                     ticket.tshirt_size = sizes_list[index]
                     ticket.save(update_fields=['tshirt_size'])
-                    
-                messages.success(request, "Ukuran kaos berhasil diperbarui!")
-                
+
+                messages.success(request, 'Ukuran kaos berhasil diperbarui!')
+
         except Transaction.DoesNotExist:
-            messages.error(request, "Aksi ditolak: Transaksi tidak ditemukan atau sudah tidak berstatus Menunggu Konfirmasi.")
-            
+            messages.error(request, 'Aksi ditolak: Transaksi tidak ditemukan atau sudah tidak berstatus Menunggu Konfirmasi.')
+
     return redirect('history')
