@@ -65,7 +65,9 @@
    {% if history_items %}
    <div class="history-list">
     {% for item in history_items %}
-    <article class="history-card">
+    
+    <!-- UX Highlight Animasi: Menyala jika statusnya PENDING dan itu Paket Mahasiswa -->
+    <article class="history-card {% if item.raw_status == 'PENDING' and 'Mahasiswa' in item.package_name %}highlight-pop{% endif %}">
      <h2 class="history-title">
       {{ item.package_name }}
      </h2>
@@ -77,9 +79,7 @@
        <span class="detail-label">
         Nama Lengkap
        </span>
-       <span class="detail-separator">
-        :
-       </span>
+       <span class="detail-separator">:</span>
        <span class="detail-value">
         {{ item.attendee_name }}
        </span>
@@ -88,9 +88,7 @@
        <span class="detail-label">
         Jumlah Tiket
        </span>
-       <span class="detail-separator">
-        :
-       </span>
+       <span class="detail-separator">:</span>
        <span class="detail-value">
         {{ item.ticket_quantity }}
        </span>
@@ -100,9 +98,7 @@
        <span class="detail-label">
         Ukuran Kaos
        </span>
-       <span class="detail-separator">
-        :
-       </span>
+       <span class="detail-separator">:</span>
        <span class="detail-value">
         {{ item.tshirt_sizes }}
        </span>
@@ -118,13 +114,20 @@
       </span>
      </div>
 
+     <!-- Tombol Aksi (Hanya muncul saat PENDING) -->
      {% if item.raw_status == 'PENDING' %}
-     <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin-top: 15px;">
-      {% csrf_token %}
-      <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-       Lanjutkan Pembayaran
-      </button>
-     </form>
+     <div style="display: flex; gap: 10px; margin-top: 15px; flex-direction: column;">
+         <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin: 0;">
+          {% csrf_token %}
+          <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+           Lanjutkan Pembayaran
+          </button>
+         </form>
+
+         <button type="button" onclick="document.getElementById('modal_tx_id').value='{{ item.transaction_id }}'; document.getElementById('actionModal').style.display='flex';" style="background-color: #e0e0e0; color: #333; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+          Edit Ukuran / Batal
+         </button>
+     </div>
      {% endif %}
 
     </article>
@@ -142,6 +145,30 @@
    {% endif %}
   </main>
   
+  <!-- MODAL OVERLAY (UPDATE & CANCEL) -->
+  <div id="actionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); z-index:100; justify-content:center; align-items:center;">
+    <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2); font-family: 'Poppins', sans-serif;">
+      <h3 style="margin-top:0; color:#333;">Kelola Pesanan</h3>
+      <p style="font-size:12px; color:#666; margin-bottom:15px;">Anda dapat mengubah ukuran kaos atau membatalkan pesanan ini jika belum dibayar.</p>
+      
+      <form method="POST" action="{% url 'manage_ticket' %}">
+        {% csrf_token %}
+        <input type="hidden" name="transaction_id" id="modal_tx_id">
+        
+        <label style="font-size:14px; font-weight:500;">Revisi Ukuran Kaos</label>
+        <p style="font-size:11px; color:#888; margin:2px 0 5px 0;">Jika > 1 tiket, pisahkan dengan koma (Contoh: S, M, XL)</p>
+        <input type="text" name="new_sizes" class="modal-input" placeholder="Masukkan ukuran baru...">
+        
+        <div style="display:flex; gap:10px; margin-top:5px;">
+          <button type="submit" name="action" value="update" style="background:#007bff; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;">Update Ukuran</button>
+          <button type="submit" name="action" value="cancel" style="background:#dc3545; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;" onclick="return confirm('Yakin ingin membatalkan pesanan ini? Kuota promo SSO Anda akan dikembalikan.');">Batalkan Pesanan</button>
+        </div>
+        
+        <button type="button" onclick="document.getElementById('actionModal').style.display='none'" style="margin-top:15px; width:100%; padding:10px; background:transparent; border:1px solid #ccc; border-radius:6px; cursor:pointer; font-weight:600;">Tutup</button>
+      </form>
+    </div>
+  </div>
+
   <footer class="footer">
    <span>
     Fasilkom UI

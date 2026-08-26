@@ -759,3 +759,56 @@ def payment_callback(request):
         return JsonResponse({'error': 'Format JSON tidak valid'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def manage_ticket(request):
+    if request.method == 'POST':
+        transaction_id = request.POST.get('transaction_id')
+        action = request.POST.get('action')
+        
+        try:
+            # 1. Pastikan transaksi milik user yang sedang login dan statusnya PENDING
+            transaction_obj = Transaction.objects.get(id=transaction_id, user=request.user, status='PENDING')
+            
+            if action == 'cancel':
+                # Batalkan pesanan (Ubah status jadi FAILED) agar kuota SSO Mahasiswa tidak terkunci lagi
+                transaction_obj.status = 'FAILED'
+                transaction_obj.save(update_fields=['status'])
+                messages.success(request, "Pesanan berhasil dibatalkan. Kuota promo SSO Anda telah di-reset.")
+                
+            elif action == 'update':
+                new_sizes_raw = request.POST.get('new_sizes', '')
+                
+                # Bersihkan input user dan ubah ke huruf kapital (e.g. "s, m" jadi ['S', 'M'])
+                sizes_list = [s.strip().upper() for s in new_sizes_raw.split(',') if s.strip()]
+                
+                # Ambil semua tiket milik transaksi ini
+                tickets = transaction_obj.tickets.all().order_by('id')
+                
+                # Validasi: Jika Non-paket, tolak pengubahan ukuran
+                if not tickets or tickets[0].package_type == 'TICKET_ONLY':
+                    messages.error(request, "Paket ini tidak termasuk kaos, tidak ada ukuran yang bisa diubah.")
+                    return redirect('history')
+                    
+                # Validasi: Jumlah ukuran yang diketik harus sama dengan jumlah tiket yang dibeli
+                if len(sizes_list) != tickets.count():
+                    messages.error(request, f"Gagal update. Jumlah ukuran kaos yang dimasukkan ({len(sizes_list)}) tidak sesuai dengan jumlah tiket Anda ({tickets.count()}).")
+                    return redirect('history')
+                    
+                # Validasi: Pastikan input ukurannya masuk akal (XS, S, M, L, XL, XXL+)
+                invalid_sizes = [s for s in sizes_list if s not in VALID_TSHIRT_SIZES]
+                if invalid_sizes:
+                    messages.error(request, f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL+")
+                    return redirect('history')
+                    
+                # Update database secara terstruktur step-by-step
+                for index, ticket in enumerate(tickets):
+                    ticket.tshirt_size = sizes_list[index]
+                    ticket.save(update_fields=['tshirt_size'])
+                    
+                messages.success(request, "Ukuran kaos berhasil diperbarui!")
+                
+        except Transaction.DoesNotExist:
+            messages.error(request, "Aksi ditolak: Transaksi tidak ditemukan atau sudah tidak berstatus Menunggu Konfirmasi.")
+            
+    return redirect('history')

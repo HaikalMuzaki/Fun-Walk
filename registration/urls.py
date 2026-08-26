@@ -14,4 +14,5 @@ urlpatterns = [
     path('payment/', views.payment_page, name='payment_page'),
     path('callback/payment/', views.payment_callback, name='payment_callback'),
     path('history/retry-payment/<int:transaction_id>/', views.retry_payment, name='retry_payment'),
+    path('history/manage/', views.manage_ticket, name='manage_ticket'),
 ]

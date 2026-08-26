@@ -1703,3 +1703,25 @@ body {
     font-size: 0.95rem;
   }
 }
+
+@keyframes pulse-attention {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+  50% { transform: scale(1.02); box-shadow: 0 0 0 15px rgba(255, 193, 7, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+.highlight-pop { 
+  animation: pulse-attention 2.5s ease-in-out 3; 
+  border: 2px solid #FFC107; 
+}
+
+/* Mempercantik form input di dalam modal */
+.modal-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
