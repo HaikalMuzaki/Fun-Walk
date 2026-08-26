@@ -631,8 +631,8 @@ def generate_signed_headers(api_key, signing_secret, method, path, body_dict):
 
 def initiate_finpay_payment(transaction_obj, request):
     # Dapatkan API_KEY dan SIGNING_SECRET dari dosen/DTD
-    API_KEY = "dummy_api_key_disini"
-    SIGNING_SECRET = "dummy_signing_secret_disini"
+    API_KEY = os.environ.get("FINPAY_API_KEY")
+    SIGNING_SECRET = os.environ.get("FINPAY_SIGNING_SECRET")
     
     BASE_URL = "https://dev-payment.ui.ac.id"
     PATH = "/api/v1/gateway/payments"
