@@ -6,6 +6,7 @@ import hashlib
 import requests
 import requests
 import uuid
+import os
 from django.conf import settings
 from django.shortcuts import redirect
 from decimal import Decimal
