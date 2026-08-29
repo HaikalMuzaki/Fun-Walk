@@ -405,6 +405,50 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(transaction.status, 'CANCELLED')
 
+    def test_manage_ticket_updates_sizes_from_dropdown_fields(self):
+        user = CustomUser.objects.create_user(
+            username='sizeupdate@gmail.com',
+            email='sizeupdate@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        transaction = Transaction.objects.create(
+            user=user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('550000'),
+        )
+        first_ticket = Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Update User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+        second_ticket = Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Update User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='L',
+            price=Decimal('275000'),
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            '/history/manage/',
+            {
+                'transaction_id': transaction.id,
+                'action': 'update',
+                'new_sizes': ['XS', '3XL'],
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        first_ticket.refresh_from_db()
+        second_ticket.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(first_ticket.tshirt_size, 'XS')
+        self.assertEqual(second_ticket.tshirt_size, '3XL')
+
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class PaymentStatusFlowTests(TestCase):

@@ -82,7 +82,7 @@ STUDY_PROGRAM_CHOICES = {
     'KECERDASAN_ARTIFISIAL': 'Kecerdasan Artifisial',
     'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
 }
-VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'}
+VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', '3XL'}
 
 
 def _format_rupiah(amount):
@@ -318,6 +318,7 @@ def _build_history_items(user):
             'status_label': status['label'],
             'attendee_name': first_ticket.attendee_name,
             'ticket_quantity': len(tickets),
+            'tshirt_sizes_list': tshirt_sizes,
             'tshirt_sizes': ', '.join(tshirt_sizes),
             'has_tshirt_sizes': bool(tshirt_sizes),
             'created_at': timezone.localtime(transaction_obj.created_at).strftime('%d/%m/%Y %H:%M:%S'),
@@ -873,8 +874,10 @@ def manage_ticket(request):
                 messages.success(request, 'Pesanan berhasil dibatalkan. Kuota promo SSO Anda telah di-reset.')
 
             elif action == 'update':
-                new_sizes_raw = request.POST.get('new_sizes', '')
-                sizes_list = [size.strip().upper() for size in new_sizes_raw.split(',') if size.strip()]
+                sizes_list = [size.strip().upper() for size in request.POST.getlist('new_sizes') if size.strip()]
+                if not sizes_list:
+                    new_sizes_raw = request.POST.get('new_sizes', '')
+                    sizes_list = [size.strip().upper() for size in new_sizes_raw.split(',') if size.strip()]
                 tickets = transaction_obj.tickets.all().order_by('id')
 
                 if not tickets or tickets[0].package_type == 'TICKET_ONLY':
@@ -892,7 +895,7 @@ def manage_ticket(request):
                 if invalid_sizes:
                     messages.error(
                         request,
-                        f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL, 3XL",
+                        f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, 3XL",
                     )
                     return redirect('history')
 

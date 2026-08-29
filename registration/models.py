@@ -95,7 +95,6 @@ class Ticket(models.Model):
         ('M', 'M'),
         ('L', 'L'),
         ('XL', 'XL'),
-        ('XXL', 'XXL'),
         ('3XL', '3XL'),
     ]
     

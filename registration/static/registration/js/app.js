@@ -7,8 +7,15 @@
   const discountPrice = document.querySelector('#discount-price');
   const whatsapp = document.querySelector('#id_whatsapp_number');
   const shirtSizeFields = document.querySelector('#shirt-size-fields');
-  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', '3XL'];
   const formatter = new Intl.NumberFormat('id-ID');
+  const actionModal = document.querySelector('#actionModal');
+  const modalTransactionId = document.querySelector('#modal_tx_id');
+  const modalSizeFields = document.querySelector('#modal_size_fields');
+  const modalSizeSection = document.querySelector('#modal_size_section');
+  const modalUnavailable = document.querySelector('#modal_size_unavailable');
+  const modalUpdateButton = document.querySelector('#modal_update_button');
+  const modalCloseButton = document.querySelector('#closeActionModal');
 
   const formatRupiah = (amount) => `Rp${formatter.format(amount)}`;
 
@@ -95,5 +102,78 @@
     quantity.addEventListener('input', renderShirtSizeFields);
     quantity.addEventListener('change', renderShirtSizeFields);
     renderShirtSizeFields();
+  }
+
+  if (actionModal && modalTransactionId && modalSizeFields && modalUpdateButton) {
+    const renderModalSizeFields = (count, selectedSizes) => {
+      const fields = [];
+
+      for (let index = 1; index <= count; index += 1) {
+        const selectedSize = selectedSizes[index - 1] || 'M';
+        const options = shirtSizeOptions
+          .map((size) => `<option value="${size}"${size === selectedSize ? ' selected=""' : ''}>${size}</option>`)
+          .join('');
+
+        fields.push(`
+          <div class="checkout-field">
+            <label for="id_modal_shirt_size_${index}">
+              Ukuran Kaos ${index}
+            </label>
+            <select id="id_modal_shirt_size_${index}" name="new_sizes">
+              ${options}
+            </select>
+          </div>
+        `);
+      }
+
+      modalSizeFields.innerHTML = fields.join('');
+    };
+
+    const closeModal = () => {
+      actionModal.style.display = 'none';
+      modalTransactionId.value = '';
+      modalSizeFields.innerHTML = '';
+    };
+
+    document.querySelectorAll('[data-open-ticket-modal="true"]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const transactionId = button.dataset.transactionId || '';
+        const ticketQuantity = Math.max(1, Number(button.dataset.ticketQuantity) || 1);
+        const hasTshirtSizes = button.dataset.hasTshirtSizes === 'true';
+        const selectedSizes = (button.dataset.shirtSizes || '')
+          .split(',')
+          .map((size) => size.trim())
+          .filter(Boolean);
+
+        modalTransactionId.value = transactionId;
+        actionModal.style.display = 'flex';
+
+        if (hasTshirtSizes) {
+          modalSizeSection.style.display = 'block';
+          modalUnavailable.style.display = 'none';
+          modalUpdateButton.disabled = false;
+          modalUpdateButton.style.opacity = '1';
+          modalUpdateButton.style.cursor = 'pointer';
+          renderModalSizeFields(ticketQuantity, selectedSizes);
+        } else {
+          modalSizeSection.style.display = 'none';
+          modalUnavailable.style.display = 'block';
+          modalUpdateButton.disabled = true;
+          modalUpdateButton.style.opacity = '0.6';
+          modalUpdateButton.style.cursor = 'not-allowed';
+          modalSizeFields.innerHTML = '';
+        }
+      });
+    });
+
+    if (modalCloseButton) {
+      modalCloseButton.addEventListener('click', closeModal);
+    }
+
+    actionModal.addEventListener('click', (event) => {
+      if (event.target === actionModal) {
+        closeModal();
+      }
+    });
   }
 })();

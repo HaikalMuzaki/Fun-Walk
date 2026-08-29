@@ -121,7 +121,17 @@
            Lanjutkan Pembayaran
          </a>
 
-         <button type="button" onclick="document.getElementById('modal_tx_id').value='{{ item.transaction_id }}'; document.getElementById('actionModal').style.display='flex';" style="background-color: #e0e0e0; color: #333; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+         <button
+          type="button"
+          data-open-ticket-modal="true"
+          data-transaction-id="{{ item.transaction_id }}"
+          data-ticket-quantity="{{ item.ticket_quantity }}"
+          data-has-tshirt-sizes="{% if item.has_tshirt_sizes %}true{% else %}false{% endif %}"
+          data-shirt-sizes="{% for size in item.tshirt_sizes_list %}{{ size }}{% if not forloop.last %},{% endif %}{% endfor %}"
+          style="background-color: #e0e0e0; color: #333; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;"
+          onmouseover="this.style.opacity='0.8'"
+          onmouseout="this.style.opacity='1'"
+         >
          Edit Ukuran / Batal
          </button>
      </div>
@@ -158,16 +168,19 @@
         {% csrf_token %}
         <input type="hidden" name="transaction_id" id="modal_tx_id">
         
-        <label style="font-size:14px; font-weight:500;">Revisi Ukuran Kaos</label>
-        <p style="font-size:11px; color:#888; margin:2px 0 5px 0;">Jika > 1 tiket, pisahkan dengan koma (Contoh: S, M, XL)</p>
-        <input type="text" name="new_sizes" class="modal-input" placeholder="Masukkan ukuran baru...">
+        <div id="modal_size_section">
+          <label style="font-size:14px; font-weight:500; display:block; margin-bottom:6px;">Revisi Ukuran Kaos</label>
+          <img alt="Panduan ukuran baju" src="{% static 'registration/assets/ukuranbaju.jpeg' %}?v=20260829" style="width:100%; border:1px solid #ddd; border-radius:8px; margin-bottom:12px;">
+          <div id="modal_size_fields"></div>
+        </div>
+        <p id="modal_size_unavailable" style="display:none; font-size:12px; color:#666; margin:0 0 12px 0;">Paket ini tidak termasuk kaos, jadi yang tersedia hanya pembatalan pesanan.</p>
         
         <div style="display:flex; gap:10px; margin-top:5px;">
-          <button type="submit" name="action" value="update" style="background:#007bff; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;">Update Ukuran</button>
+          <button type="submit" name="action" value="update" id="modal_update_button" style="background:#007bff; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;">Update Ukuran</button>
           <button type="submit" name="action" value="cancel" style="background:#dc3545; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;" onclick="return confirm('Yakin ingin membatalkan pesanan ini? Kuota promo SSO Anda akan dikembalikan.');">Batalkan Pesanan</button>
         </div>
         
-        <button type="button" onclick="document.getElementById('actionModal').style.display='none'" style="margin-top:15px; width:100%; padding:10px; background:transparent; border:1px solid #ccc; border-radius:6px; cursor:pointer; font-weight:600;">Tutup</button>
+        <button type="button" id="closeActionModal" style="margin-top:15px; width:100%; padding:10px; background:transparent; border:1px solid #ccc; border-radius:6px; cursor:pointer; font-weight:600;">Tutup</button>
       </form>
     </div>
   </div>

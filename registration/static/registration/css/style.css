@@ -1387,23 +1387,16 @@ body {
 }
 
 .size-chart {
-  width: min(100%, 19rem);
+  width: min(100%, 30rem);
   margin: 0.4rem 0 1rem;
-  overflow: hidden;
-  border: 1px solid #999;
 }
 
-.size-chart table {
+.size-chart img {
+  display: block;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.65rem;
-  text-align: center;
-}
-
-.size-chart th,
-.size-chart td {
-  padding: 0.2rem 0.4rem;
-  border: 1px solid #aaa;
+  height: auto;
+  border: 1px solid #999;
+  border-radius: 0.2rem;
 }
 
 .checkout-summary {
