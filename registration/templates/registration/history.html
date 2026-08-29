@@ -117,9 +117,12 @@
      <!-- Pesanan hanya bisa dibayar, diedit, atau dibatalkan sebelum masuk ke gateway. -->
      {% if item.raw_status == 'PENDING_PAYMENT' %}
      <div style="display: flex; gap: 10px; margin-top: 15px; flex-direction: column;">
-         <a href="{{ item.payment_page_url }}" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s; text-align: center; text-decoration: none;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+         <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin: 0;">
+          {% csrf_token %}
+          <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
            Lanjutkan Pembayaran
-         </a>
+          </button>
+         </form>
 
          <button
           type="button"
@@ -138,9 +141,12 @@
      </div>
      {% elif item.raw_status == 'PENDING_CONFIRMATION' %}
      <div style="display: flex; margin-top: 15px;">
-       <a href="{{ item.payment_page_url }}" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s; text-align: center; text-decoration: none;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-        Pilih Metode Pembayaran Lagi
-       </a>
+       <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin: 0; width: 100%;">
+        {% csrf_token %}
+        <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+         Pilih Metode Pembayaran Lagi
+        </button>
+       </form>
      </div>
      {% endif %}
 

@@ -550,6 +550,33 @@ class PaymentStatusFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/history/')
 
+    @patch('registration.views.initiate_payment', return_value='https://dev-payment.ui.ac.id/pay/example')
+    def test_payment_page_redirects_directly_to_gateway_when_link_missing(self, mocked_initiate_payment):
+        transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Gateway Redirect User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            f'/payment/?trx={transaction.idempotency_key}',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        transaction.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, 'https://dev-payment.ui.ac.id/pay/example')
+        self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
+        mocked_initiate_payment.assert_called_once()
+
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class PaymentGatewayFallbackTests(TestCase):
