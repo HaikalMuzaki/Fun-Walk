@@ -135,35 +135,40 @@
       modalSizeFields.innerHTML = '';
     };
 
+    const openModal = (button) => {
+      const transactionId = button.dataset.transactionId || '';
+      const ticketQuantity = Math.max(1, Number(button.dataset.ticketQuantity) || 1);
+      const hasTshirtSizes = button.dataset.hasTshirtSizes === 'true';
+      const selectedSizes = (button.dataset.shirtSizes || '')
+        .split(',')
+        .map((size) => size.trim())
+        .filter(Boolean);
+
+      modalTransactionId.value = transactionId;
+      actionModal.style.display = 'flex';
+
+      if (hasTshirtSizes) {
+        modalSizeSection.style.display = 'block';
+        modalUnavailable.style.display = 'none';
+        modalUpdateButton.disabled = false;
+        modalUpdateButton.style.opacity = '1';
+        modalUpdateButton.style.cursor = 'pointer';
+        renderModalSizeFields(ticketQuantity, selectedSizes);
+      } else {
+        modalSizeSection.style.display = 'none';
+        modalUnavailable.style.display = 'block';
+        modalUpdateButton.disabled = true;
+        modalUpdateButton.style.opacity = '0.6';
+        modalUpdateButton.style.cursor = 'not-allowed';
+        modalSizeFields.innerHTML = '';
+      }
+    };
+
+    window.openTicketModal = openModal;
+    window.closeTicketModal = closeModal;
+
     document.querySelectorAll('[data-open-ticket-modal="true"]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const transactionId = button.dataset.transactionId || '';
-        const ticketQuantity = Math.max(1, Number(button.dataset.ticketQuantity) || 1);
-        const hasTshirtSizes = button.dataset.hasTshirtSizes === 'true';
-        const selectedSizes = (button.dataset.shirtSizes || '')
-          .split(',')
-          .map((size) => size.trim())
-          .filter(Boolean);
-
-        modalTransactionId.value = transactionId;
-        actionModal.style.display = 'flex';
-
-        if (hasTshirtSizes) {
-          modalSizeSection.style.display = 'block';
-          modalUnavailable.style.display = 'none';
-          modalUpdateButton.disabled = false;
-          modalUpdateButton.style.opacity = '1';
-          modalUpdateButton.style.cursor = 'pointer';
-          renderModalSizeFields(ticketQuantity, selectedSizes);
-        } else {
-          modalSizeSection.style.display = 'none';
-          modalUnavailable.style.display = 'block';
-          modalUpdateButton.disabled = true;
-          modalUpdateButton.style.opacity = '0.6';
-          modalUpdateButton.style.cursor = 'not-allowed';
-          modalSizeFields.innerHTML = '';
-        }
-      });
+      button.addEventListener('click', () => openModal(button));
     });
 
     if (modalCloseButton) {

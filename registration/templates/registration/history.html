@@ -125,9 +125,10 @@
           type="button"
           data-open-ticket-modal="true"
           data-transaction-id="{{ item.transaction_id }}"
-          data-ticket-quantity="{{ item.ticket_quantity }}"
+         data-ticket-quantity="{{ item.ticket_quantity }}"
           data-has-tshirt-sizes="{% if item.has_tshirt_sizes %}true{% else %}false{% endif %}"
           data-shirt-sizes="{% for size in item.tshirt_sizes_list %}{{ size }}{% if not forloop.last %},{% endif %}{% endfor %}"
+          onclick="if (window.openTicketModal) { window.openTicketModal(this); }"
           style="background-color: #e0e0e0; color: #333; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;"
           onmouseover="this.style.opacity='0.8'"
           onmouseout="this.style.opacity='1'"
@@ -180,7 +181,7 @@
           <button type="submit" name="action" value="cancel" style="background:#dc3545; color:white; padding:10px; border:none; border-radius:6px; width:100%; cursor:pointer; font-weight:600;" onclick="return confirm('Yakin ingin membatalkan pesanan ini? Kuota promo SSO Anda akan dikembalikan.');">Batalkan Pesanan</button>
         </div>
         
-        <button type="button" id="closeActionModal" style="margin-top:15px; width:100%; padding:10px; background:transparent; border:1px solid #ccc; border-radius:6px; cursor:pointer; font-weight:600;">Tutup</button>
+        <button type="button" id="closeActionModal" onclick="if (window.closeTicketModal) { window.closeTicketModal(); }" style="margin-top:15px; width:100%; padding:10px; background:transparent; border:1px solid #ccc; border-radius:6px; cursor:pointer; font-weight:600;">Tutup</button>
       </form>
     </div>
   </div>
@@ -190,7 +191,7 @@
     Fasilkom UI
    </span>
   </footer>
-  <script src="{% static 'registration/js/app.js' %}">
+  <script src="{% static 'registration/js/app.js' %}?v=20260829-2">
   </script>
  </body>
 </html>
