@@ -13,6 +13,18 @@ from requests.exceptions import RequestException
 logger = logging.getLogger(__name__)
 
 PAYMENT_GATEWAY_PATH = '/api/v1/gateway/payments'
+REDIRECT_URL_KEYS = (
+    'redirect_url',
+    'finpay_redirect_url',
+    'payment_redirect_url',
+    'payment_url',
+    'payment_link',
+    'checkout_url',
+    'checkout_link',
+    'url',
+    'link',
+    'href',
+)
 
 GATEWAY_TO_LOCAL_STATUS = {
     'success': 'PAID',
@@ -112,8 +124,37 @@ def generate_signed_headers(api_key, signing_secret, method, path, body_str=''):
 
 
 def extract_redirect_url(response_data):
-    data = response_data.get('data') or {}
-    return data.get('redirect_url') or data.get('finpay_redirect_url')
+    def _extract_from_value(value, prefer_any_http_url=False):
+        if isinstance(value, str):
+            normalized_value = value.strip()
+            if normalized_value.startswith(('http://', 'https://')):
+                if prefer_any_http_url:
+                    return normalized_value
+                if 'finpay' in normalized_value or '/pg/payment/' in normalized_value or '/pay/' in normalized_value:
+                    return normalized_value
+            return ''
+
+        if isinstance(value, dict):
+            for key in REDIRECT_URL_KEYS:
+                candidate = value.get(key)
+                redirect_url = _extract_from_value(candidate, prefer_any_http_url=True)
+                if redirect_url:
+                    return redirect_url
+
+            for nested_value in value.values():
+                redirect_url = _extract_from_value(nested_value, prefer_any_http_url=False)
+                if redirect_url:
+                    return redirect_url
+
+        if isinstance(value, list):
+            for item in value:
+                redirect_url = _extract_from_value(item, prefer_any_http_url=False)
+                if redirect_url:
+                    return redirect_url
+
+        return ''
+
+    return _extract_from_value(response_data, prefer_any_http_url=False)
 
 
 def normalize_gateway_status(status):
@@ -245,6 +286,10 @@ def initiate_payment(transaction_obj, request, package_label):
 
     redirect_url = extract_redirect_url(response_data)
     if not redirect_url:
+        logger.error(
+            'Gateway merespons tanpa redirect URL yang dikenali. response_data=%s',
+            json.dumps(response_data, ensure_ascii=False),
+        )
         raise ValueError('Gateway berhasil merespons, tetapi redirect_url tidak ditemukan di response.')
 
     store_initiate_response(transaction_obj, response_data, redirect_url)
