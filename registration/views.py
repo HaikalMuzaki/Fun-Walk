@@ -628,13 +628,18 @@ def retry_payment(request, transaction_id):
             transaction_obj = Transaction.objects.get(
                 id=transaction_id,
                 user=request.user,
-                status='PENDING_PAYMENT',
+                status__in=['PENDING_PAYMENT', 'PENDING_CONFIRMATION'],
             )
 
             if transaction_obj.payment_redirect_url:
-                transaction_obj.status = 'PENDING_CONFIRMATION'
-                transaction_obj.save(update_fields=['status'])
+                if transaction_obj.status == 'PENDING_PAYMENT':
+                    transaction_obj.status = 'PENDING_CONFIRMATION'
+                    transaction_obj.save(update_fields=['status'])
                 return redirect(transaction_obj.payment_redirect_url)
+
+            if transaction_obj.status == 'PENDING_CONFIRMATION':
+                messages.error(request, 'Link pembayaran sebelumnya tidak tersedia. Silakan hubungi panitia.')
+                return redirect('history')
 
             first_ticket = transaction_obj.tickets.order_by('id').first()
             if first_ticket is None:
@@ -667,7 +672,7 @@ def retry_payment(request, transaction_id):
             return redirect(finpay_url)
 
         except Transaction.DoesNotExist:
-            messages.error(request, 'Transaksi tidak ditemukan atau sudah dilanjutkan ke pembayaran.')
+            messages.error(request, 'Transaksi tidak ditemukan atau status pembayaran sudah selesai.')
             return redirect('history')
         except ValueError as error:
             messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')

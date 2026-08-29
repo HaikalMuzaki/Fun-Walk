@@ -339,6 +339,38 @@ class CheckoutPersistenceTests(TestCase):
         self.assertNotEqual(transaction.idempotency_key, original_key)
         self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
 
+    @patch('registration.views.initiate_payment')
+    def test_confirmation_transaction_reopens_saved_payment_url(self, mocked_initiate_payment):
+        user = CustomUser.objects.create_user(
+            username='reopen@gmail.com',
+            email='reopen@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        transaction = Transaction.objects.create(
+            user=user,
+            status='PENDING_CONFIRMATION',
+            payment_redirect_url='https://payment.example/choose-method',
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Reopen User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            f'/history/retry-payment/{transaction.id}/',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, 'https://payment.example/choose-method')
+        mocked_initiate_payment.assert_not_called()
+
     def test_cancel_order_uses_cancelled_status(self):
         user = CustomUser.objects.create_user(
             username='cancel@gmail.com',
