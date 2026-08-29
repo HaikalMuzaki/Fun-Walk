@@ -285,6 +285,7 @@ class CheckoutPersistenceTests(TestCase):
                 'full_name': 'Bilqis Nisrina',
                 'whatsapp_number': '081234567890',
                 'cohort_year': '2022',
+                'degree_level': 'S1',
                 'study_program': 'Ilmu Komputer',
                 'ticket_quantity': '2',
                 'shirt_size_1': 'M',
@@ -299,6 +300,8 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.status, 'PENDING_PAYMENT')
         self.assertEqual(transaction.whatsapp_number, '081234567890')
         self.assertEqual(transaction.cohort_year, 2022)
+        self.assertEqual(transaction.degree_level, 'S1')
+        self.assertEqual(transaction.study_program, 'ILMU_KOMPUTER')
         self.assertEqual(transaction.tickets.count(), 2)
         mocked_initiate_payment.assert_not_called()
 
@@ -452,6 +455,56 @@ class PaymentStatusFlowTests(TestCase):
                 transaction.refresh_from_db()
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(transaction.status, expected_local_status)
+
+    def test_gateway_callback_accepts_form_encoded_payload(self):
+        transaction = self._create_transaction()
+        response = self.client.post(
+            '/callback/payment/',
+            data={
+                'idempotency_key': transaction.idempotency_key,
+                'transaction_id': f'gateway-{transaction.id}',
+                'status': 'success',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        transaction.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(transaction.status, 'PAID')
+
+    @patch('registration.views.refresh_transaction_status')
+    def test_history_refreshes_pending_gateway_transactions(self, mocked_refresh_transaction_status):
+        transaction = self._create_transaction()
+        transaction.gateway_transaction_id = 'gateway-1'
+        transaction.save(update_fields=['gateway_transaction_id'])
+
+        self.client.force_login(self.user)
+        response = self.client.get('/history/', HTTP_HOST='127.0.0.1')
+
+        self.assertEqual(response.status_code, 200)
+        mocked_refresh_transaction_status.assert_called_once()
+        self.assertEqual(mocked_refresh_transaction_status.call_args.args[0].id, transaction.id)
+
+    @patch('registration.views.refresh_transaction_status')
+    def test_payment_return_redirects_back_to_history_when_paid(self, mocked_refresh_transaction_status):
+        transaction = self._create_transaction()
+        transaction.gateway_transaction_id = 'gateway-2'
+        transaction.save(update_fields=['gateway_transaction_id'])
+
+        def mark_paid(transaction_obj):
+            transaction_obj.status = 'PAID'
+            transaction_obj.save(update_fields=['status'])
+
+        mocked_refresh_transaction_status.side_effect = mark_paid
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            f'/payment/?trx={transaction.idempotency_key}&gateway_return=success',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/history/')
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

@@ -1,6 +1,7 @@
 import json
 import logging
 from decimal import Decimal
+from urllib.parse import parse_qs
 from xml.etree.ElementTree import ParseError
 
 from cas import CASError
@@ -23,6 +24,7 @@ from .payment_gateway import (
     apply_callback_payload,
     initiate_payment,
     is_terminal_local_status,
+    refresh_transaction_status,
     verify_callback_status_if_needed,
 )
 from .sso_compat import ensure_django_six_compat
@@ -73,7 +75,14 @@ STATUS_DETAILS = {
     },
 }
 
-VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', 'XXL+'}
+VALID_DEGREE_LEVELS = {'S1', 'S2', 'S3'}
+STUDY_PROGRAM_CHOICES = {
+    'ILMU_KOMPUTER': 'Ilmu Komputer',
+    'SISTEM_INFORMASI': 'Sistem Informasi',
+    'KECERDASAN_ARTIFISIAL': 'Kecerdasan Artifisial',
+    'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
+}
+VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'}
 
 
 def _format_rupiah(amount):
@@ -117,6 +126,25 @@ def _parse_cohort_year(value):
         return int(normalized_value)
     except (TypeError, ValueError):
         raise ValueError('Tahun angkatan tidak valid.')
+
+
+def _parse_degree_level(value):
+    normalized_value = (value or '').strip().upper()
+    if normalized_value not in VALID_DEGREE_LEVELS:
+        raise ValueError('Jenjang wajib dipilih dari S1, S2, atau S3.')
+    return normalized_value
+
+
+def _parse_study_program(value):
+    normalized_value = (value or '').strip().upper().replace(' ', '_')
+    label_to_code = {
+        label.upper().replace(' ', '_'): code
+        for code, label in STUDY_PROGRAM_CHOICES.items()
+    }
+    normalized_value = label_to_code.get(normalized_value, normalized_value)
+    if normalized_value not in STUDY_PROGRAM_CHOICES:
+        raise ValueError('Program studi wajib dipilih dari opsi yang tersedia.')
+    return normalized_value
 
 
 def _get_first_non_empty_value(data, *keys):
@@ -283,6 +311,7 @@ def _build_history_items(user):
 
         history_items.append({
             'transaction_id': transaction_obj.id,
+            'payment_page_url': f"{reverse('payment_page')}?trx={transaction_obj.idempotency_key}",
             'raw_status': transaction_obj.status,
             'package_name': PACKAGE_DETAILS[first_ticket.package_type]['label'],
             'status_class': status['class_name'],
@@ -298,10 +327,33 @@ def _build_history_items(user):
     return history_items
 
 
+def _sync_pending_transactions_for_user(user):
+    pending_transactions = (
+        Transaction.objects.filter(
+            user=user,
+            status__in=['PENDING_PAYMENT', 'PENDING_CONFIRMATION'],
+        )
+        .exclude(gateway_transaction_id='')
+        .order_by('-created_at')
+    )
+
+    for transaction_obj in pending_transactions:
+        try:
+            refresh_transaction_status(transaction_obj)
+        except ValueError as error:
+            logger.warning(
+                'Sinkronisasi status gateway gagal untuk %s: %s',
+                transaction_obj.transaction_id,
+                error,
+            )
+
+
 def _create_checkout_transaction(request, package_type):
     full_name = (request.POST.get('full_name') or '').strip()
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
     cohort_year = _parse_cohort_year(request.POST.get('cohort_year'))
+    degree_level = _parse_degree_level(request.POST.get('degree_level'))
+    study_program = _parse_study_program(request.POST.get('study_program'))
     try:
         quantity = int(request.POST.get('ticket_quantity') or 1)
     except (TypeError, ValueError):
@@ -327,6 +379,8 @@ def _create_checkout_transaction(request, package_type):
             status='PENDING_PAYMENT',
             whatsapp_number=whatsapp_number,
             cohort_year=cohort_year,
+            degree_level=degree_level,
+            study_program=study_program,
             total_amount=Decimal('0'),
         )
 
@@ -561,6 +615,7 @@ def checkout_non_paket(request):
 
 @login_required
 def history(request):
+    _sync_pending_transactions_for_user(request.user)
     return render(
         request,
         'registration/history.html',
@@ -576,6 +631,7 @@ def custom_logout(request):
 @login_required
 def payment_page(request):
     transaction_reference = (request.GET.get('trx') or '').strip()
+    gateway_return = (request.GET.get('gateway_return') or '').strip().lower()
     transaction_obj = None
 
     if transaction_reference:
@@ -587,6 +643,26 @@ def payment_page(request):
 
         if transaction_obj.user_id != request.user.id:
             messages.error(request, 'Anda tidak memiliki akses ke transaksi ini.')
+            return redirect('history')
+
+        if transaction_obj.gateway_transaction_id:
+            try:
+                refresh_transaction_status(transaction_obj)
+            except ValueError as error:
+                logger.warning(
+                    'Refresh status payment page gagal untuk %s: %s',
+                    transaction_obj.transaction_id,
+                    error,
+                )
+
+        if gateway_return:
+            if transaction_obj.status == 'PAID':
+                messages.success(request, 'Pembayaran berhasil dikonfirmasi.')
+                return redirect('history')
+            if transaction_obj.status in {'FAILED', 'CANCELLED'}:
+                messages.error(request, 'Pembayaran tidak berhasil. Silakan coba lagi.')
+                return redirect('history')
+            messages.warning(request, 'Status pembayaran masih menunggu konfirmasi gateway.')
             return redirect('history')
 
     if transaction_obj is None:
@@ -606,6 +682,42 @@ def payment_page(request):
         total_bayar = int(transaction_obj.total_amount)
         base_price = int(first_ticket.price) if first_ticket else total_bayar
         subtotal = total_bayar
+
+    if request.method == 'POST':
+        if transaction_obj is None:
+            messages.error(request, 'Transaksi pembayaran tidak ditemukan.')
+            return redirect('history')
+        if is_terminal_local_status(transaction_obj.status):
+            messages.warning(request, 'Transaksi ini sudah selesai dan tidak perlu dibayar ulang.')
+            return redirect('history')
+
+        first_ticket = transaction_obj.tickets.order_by('id').first()
+        if first_ticket is None:
+            messages.error(request, 'Transaksi ini belum memiliki tiket yang valid.')
+            return redirect('history')
+
+        try:
+            if not transaction_obj.payment_redirect_url and transaction_obj.status == 'PENDING_CONFIRMATION':
+                transaction_obj.status = 'PENDING_PAYMENT'
+                transaction_obj.save(update_fields=['status'])
+
+            if transaction_obj.status == 'PENDING_PAYMENT':
+                package_label = PACKAGE_DETAILS[first_ticket.package_type]['label']
+                finpay_url = initiate_payment(transaction_obj, request, package_label)
+                if transaction_obj.status == 'PENDING_PAYMENT':
+                    transaction_obj.status = 'PENDING_CONFIRMATION'
+                    transaction_obj.failed_at = None
+                    transaction_obj.save(update_fields=['status', 'failed_at'])
+                return redirect(finpay_url)
+
+            if transaction_obj.payment_redirect_url:
+                return redirect(transaction_obj.payment_redirect_url)
+
+            messages.error(request, 'Link pembayaran tidak tersedia. Silakan coba lagi dari History.')
+            return redirect('history')
+        except ValueError as error:
+            messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
+            return redirect('history')
 
     context = {
         'ticket_type': ticket_type,
@@ -685,9 +797,36 @@ def retry_payment(request, transaction_id):
 @require_POST
 def payment_callback(request):
     try:
-        payload = json.loads(request.body)
-        order_id = payload.get('idempotency_key') or payload.get('order_id')
-        status = payload.get('status')
+        payload = {}
+        if request.content_type and 'application/json' in request.content_type:
+            payload = json.loads(request.body)
+        elif request.POST:
+            payload = request.POST.dict()
+        elif request.body:
+            payload = {
+                key: values[-1]
+                for key, values in parse_qs(request.body.decode('utf-8', errors='ignore')).items()
+            }
+
+        if not payload:
+            return JsonResponse({'error': 'Payload callback kosong'}, status=400)
+
+        if len(payload) == 1:
+            nested_payload = payload.get('payload') or payload.get('data')
+            if isinstance(nested_payload, str):
+                try:
+                    payload = json.loads(nested_payload)
+                except json.JSONDecodeError:
+                    pass
+
+        payload_data = payload.get('data') if isinstance(payload.get('data'), dict) else {}
+        order_id = (
+            payload.get('idempotency_key')
+            or payload.get('order_id')
+            or payload_data.get('idempotency_key')
+            or payload_data.get('order_id')
+        )
+        status = payload.get('status') or payload_data.get('status')
 
         if not order_id or not status:
             return JsonResponse({'error': 'Payload tidak lengkap'}, status=400)
@@ -753,7 +892,7 @@ def manage_ticket(request):
                 if invalid_sizes:
                     messages.error(
                         request,
-                        f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL+",
+                        f"Ukuran tidak valid: {', '.join(invalid_sizes)}. Gunakan hanya: XS, S, M, L, XL, XXL, 3XL",
                     )
                     return redirect('history')
 

@@ -135,6 +135,9 @@ def build_initiate_payload(transaction_obj, request, package_label):
     full_name = first_ticket.attendee_name if first_ticket else transaction_obj.user.get_full_name()
     first_name, last_name = split_name(full_name)
     payment_page_url = f"{build_absolute_url(request, 'payment_page')}?trx={transaction_obj.idempotency_key}"
+    success_url = f'{payment_page_url}&gateway_return=success'
+    fail_url = f'{payment_page_url}&gateway_return=failed'
+    back_url = f'{payment_page_url}&gateway_return=back'
 
     return {
         'idempotency_key': transaction_obj.idempotency_key,
@@ -148,9 +151,9 @@ def build_initiate_payload(transaction_obj, request, package_label):
             'mobile_phone': e164_phone,
         },
         'url': {
-            'success_url': build_absolute_url(request, 'history'),
-            'fail_url': build_absolute_url(request, 'history'),
-            'back_url': payment_page_url,
+            'success_url': success_url,
+            'fail_url': fail_url,
+            'back_url': back_url,
         },
     }
 
@@ -284,17 +287,79 @@ def fetch_payment_status(transaction_obj):
     return response_data
 
 
-def apply_callback_payload(transaction_obj, payload):
-    gateway_transaction_id = payload.get('transaction_id')
-    gateway_status = payload.get('status')
+def apply_status_response(transaction_obj, response_data):
+    data = response_data.get('data') or {}
+    gateway_transaction_id = data.get('transaction_id') or data.get('id')
+    gateway_status = data.get('status') or response_data.get('status')
 
     if gateway_transaction_id:
         transaction_obj.gateway_transaction_id = gateway_transaction_id
     if gateway_status:
         transaction_obj.gateway_status = gateway_status
 
-    transaction_obj.payment_channel = payload.get('payment_channel') or transaction_obj.payment_channel
-    transaction_obj.payment_type = payload.get('payment_type') or transaction_obj.payment_type
+    transaction_obj.payment_channel = (
+        data.get('payment_channel')
+        or data.get('channel')
+        or transaction_obj.payment_channel
+    )
+    transaction_obj.payment_type = (
+        data.get('payment_type')
+        or data.get('payment_method')
+        or data.get('method')
+        or transaction_obj.payment_type
+    )
+    transaction_obj.gateway_response_payload = response_data
+
+    if gateway_status and not is_terminal_local_status(transaction_obj.status):
+        transaction_obj.status = map_gateway_status_to_local(gateway_status)
+        if transaction_obj.status == 'PAID':
+            transaction_obj.paid_at = transaction_obj.paid_at or timezone.now()
+        elif transaction_obj.status == 'FAILED':
+            transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
+
+    transaction_obj.save(
+        update_fields=[
+            'status',
+            'gateway_transaction_id',
+            'gateway_status',
+            'payment_channel',
+            'payment_type',
+            'gateway_response_payload',
+            'paid_at',
+            'failed_at',
+        ]
+    )
+
+
+def refresh_transaction_status(transaction_obj):
+    response_data = fetch_payment_status(transaction_obj)
+    apply_status_response(transaction_obj, response_data)
+    return response_data
+
+
+def apply_callback_payload(transaction_obj, payload):
+    data = payload.get('data') if isinstance(payload.get('data'), dict) else {}
+    gateway_transaction_id = payload.get('transaction_id') or data.get('transaction_id') or data.get('id')
+    gateway_status = payload.get('status') or data.get('status')
+
+    if gateway_transaction_id:
+        transaction_obj.gateway_transaction_id = gateway_transaction_id
+    if gateway_status:
+        transaction_obj.gateway_status = gateway_status
+
+    transaction_obj.payment_channel = (
+        payload.get('payment_channel')
+        or data.get('payment_channel')
+        or data.get('channel')
+        or transaction_obj.payment_channel
+    )
+    transaction_obj.payment_type = (
+        payload.get('payment_type')
+        or data.get('payment_type')
+        or data.get('payment_method')
+        or data.get('method')
+        or transaction_obj.payment_type
+    )
     transaction_obj.gateway_callback_payload = payload
 
     next_status = map_gateway_status_to_local(gateway_status)
@@ -329,28 +394,7 @@ def verify_callback_status_if_needed(transaction_obj):
         return
 
     try:
-        response_data = fetch_payment_status(transaction_obj)
+        refresh_transaction_status(transaction_obj)
     except ValueError as error:
         logger.warning('Verifikasi status gateway gagal untuk %s: %s', transaction_obj.transaction_id, error)
         return
-
-    data = response_data.get('data') or {}
-    gateway_status = data.get('status')
-    if gateway_status:
-        transaction_obj.gateway_status = gateway_status
-        if not is_terminal_local_status(transaction_obj.status):
-            transaction_obj.status = map_gateway_status_to_local(gateway_status)
-            if transaction_obj.status == 'PAID':
-                transaction_obj.paid_at = transaction_obj.paid_at or timezone.now()
-            elif transaction_obj.status == 'FAILED':
-                transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
-        transaction_obj.gateway_response_payload = response_data
-        transaction_obj.save(
-            update_fields=[
-                'status',
-                'gateway_status',
-                'gateway_response_payload',
-                'paid_at',
-                'failed_at',
-            ]
-        )

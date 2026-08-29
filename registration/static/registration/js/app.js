@@ -7,7 +7,7 @@
   const discountPrice = document.querySelector('#discount-price');
   const whatsapp = document.querySelector('#id_whatsapp_number');
   const shirtSizeFields = document.querySelector('#shirt-size-fields');
-  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL+'];
+  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
   const formatter = new Intl.NumberFormat('id-ID');
 
   const formatRupiah = (amount) => `Rp${formatter.format(amount)}`;

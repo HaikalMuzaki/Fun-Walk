@@ -28,6 +28,8 @@ EXPORT_HEADERS = [
     'Email Akun',
     'Jenis Akun',
     'Tahun Angkatan',
+    'Jenjang',
+    'Program Studi',
     'Nomor WhatsApp',
     'Nama Peserta',
     'Paket',
@@ -56,6 +58,8 @@ def _build_transaction_export_rows(queryset=None):
         created_at = timezone.localtime(transaction_obj.created_at)
         tickets = list(transaction_obj.tickets.all())
         cohort_year = transaction_obj.cohort_year or '-'
+        degree_level = transaction_obj.degree_level or '-'
+        study_program = transaction_obj.get_study_program_display() or '-'
         whatsapp_number = transaction_obj.whatsapp_number or '-'
 
         if not tickets:
@@ -69,6 +73,8 @@ def _build_transaction_export_rows(queryset=None):
                 transaction_obj.user.email,
                 transaction_obj.user.get_user_type_display(),
                 cohort_year,
+                degree_level,
+                study_program,
                 whatsapp_number,
                 '-',
                 '-',
@@ -90,6 +96,8 @@ def _build_transaction_export_rows(queryset=None):
                 transaction_obj.user.email,
                 transaction_obj.user.get_user_type_display(),
                 cohort_year,
+                degree_level,
+                study_program,
                 whatsapp_number,
                 ticket.attendee_name,
                 ticket.get_package_type_display(),

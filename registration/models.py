@@ -17,6 +17,17 @@ class CustomUser(AbstractUser):
 
 # --- 2. TRANSAKSI (Keranjang Belanja) ---
 class Transaction(models.Model):
+    DEGREE_LEVEL_CHOICES = [
+        ('S1', 'S1'),
+        ('S2', 'S2'),
+        ('S3', 'S3'),
+    ]
+    STUDY_PROGRAM_CHOICES = [
+        ('ILMU_KOMPUTER', 'Ilmu Komputer'),
+        ('SISTEM_INFORMASI', 'Sistem Informasi'),
+        ('KECERDASAN_ARTIFISIAL', 'Kecerdasan Artifisial'),
+        ('TEKNOLOGI_INFORMASI', 'Teknologi Informasi'),
+    ]
     STATUS_CHOICES = [
         ('PENDING_PAYMENT', 'Menunggu Pembayaran'),
         ('PENDING_CONFIRMATION', 'Menunggu Konfirmasi'),
@@ -30,6 +41,20 @@ class Transaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING_PAYMENT')
     whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name="Nomor WhatsApp")
     cohort_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Tahun Angkatan")
+    degree_level = models.CharField(
+        max_length=2,
+        choices=DEGREE_LEVEL_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="Jenjang",
+    )
+    study_program = models.CharField(
+        max_length=40,
+        choices=STUDY_PROGRAM_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="Program Studi",
+    )
     idempotency_key = models.CharField(max_length=80, unique=True, editable=False, blank=True)
     gateway_transaction_id = models.CharField(max_length=120, blank=True, default='', verbose_name="ID Transaksi Gateway")
     gateway_status = models.CharField(max_length=50, blank=True, default='', verbose_name="Status Gateway")
@@ -70,7 +95,8 @@ class Ticket(models.Model):
         ('M', 'M'),
         ('L', 'L'),
         ('XL', 'XL'),
-        ('XXL+', 'XXL+'),
+        ('XXL', 'XXL'),
+        ('3XL', '3XL'),
     ]
     
     # Relasi: 1 Transaksi bisa punya banyak Tiket (Pax)

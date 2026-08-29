@@ -205,7 +205,15 @@
         <span>Metode Pembayaran</span>
       </div>
 
-      <form action="#" method="POST" id="form-pembayaran">
+      {% if messages %}
+      <div class="form-errors" style="margin-bottom: 16px;">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="POST" id="form-pembayaran">
         {% csrf_token %}
         <input type="hidden" name="ticket_type" value="{{ ticket_type }}">
         <input type="hidden" name="total_bayar" value="{{ total_bayar }}">
@@ -271,6 +279,17 @@
         <div class="summary-card">
           <div class="summary-title">Ringkasan Pesanan</div>
 
+          {% if transaction %}
+          <div class="summary-row">
+            <span>ID Transaksi</span>
+            <span>{{ transaction.transaction_id }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Status Saat Ini</span>
+            <span>{{ transaction.get_status_display }}</span>
+          </div>
+          {% endif %}
+
           <div class="summary-row" style="font-weight: 600; color: #0f172a;">
             <span>Registrasi Dies Natalis 40</span>
             <span>Rp {{ subtotal|floatformat:0 }}</span>
@@ -286,7 +305,11 @@
           </div>
 
           <button type="submit" class="btn-submit-pay">
+            {% if transaction and transaction.status == 'PENDING_CONFIRMATION' %}
+            Buka Halaman Pembayaran
+            {% else %}
             Bayar Sekarang
+            {% endif %}
           </button>
           
           <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; margin-top: 12px;">
