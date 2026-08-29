@@ -5,6 +5,7 @@ from requests.exceptions import ConnectTimeout, RequestException
 from unittest.mock import patch
 from unittest.mock import Mock
 from decimal import Decimal
+import json
 import os
 import shutil
 import tempfile
@@ -293,10 +294,13 @@ class CheckoutPersistenceTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/history/')
         transaction = Transaction.objects.get(user=user)
+        self.assertEqual(transaction.status, 'PENDING_PAYMENT')
         self.assertEqual(transaction.whatsapp_number, '081234567890')
         self.assertEqual(transaction.cohort_year, 2022)
         self.assertEqual(transaction.tickets.count(), 2)
+        mocked_initiate_payment.assert_not_called()
 
     @patch('registration.views.initiate_payment', return_value='https://payment.example/retry')
     def test_retry_payment_rotates_idempotency_key_when_redirect_url_missing(self, mocked_initiate_payment):
@@ -308,7 +312,7 @@ class CheckoutPersistenceTests(TestCase):
         )
         transaction = Transaction.objects.create(
             user=user,
-            status='PENDING',
+            status='PENDING_PAYMENT',
             whatsapp_number='081234567890',
             cohort_year=2022,
             total_amount=Decimal('275000'),
@@ -333,6 +337,89 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, 'https://payment.example/retry')
         self.assertNotEqual(transaction.idempotency_key, original_key)
+        self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
+
+    def test_cancel_order_uses_cancelled_status(self):
+        user = CustomUser.objects.create_user(
+            username='cancel@gmail.com',
+            email='cancel@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        transaction = Transaction.objects.create(
+            user=user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Cancel User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            '/history/manage/',
+            {'transaction_id': transaction.id, 'action': 'cancel'},
+            HTTP_HOST='127.0.0.1',
+        )
+
+        transaction.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(transaction.status, 'CANCELLED')
+
+
+@override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
+class PaymentStatusFlowTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username='status@gmail.com',
+            email='status@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+
+    def _create_transaction(self):
+        transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING_CONFIRMATION',
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=transaction,
+            attendee_name='Status User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+        return transaction
+
+    def test_gateway_callbacks_map_to_confirmation_success_and_failure(self):
+        expected_statuses = {
+            'processing': 'PENDING_CONFIRMATION',
+            'success': 'PAID',
+            'failed': 'FAILED',
+        }
+
+        for gateway_status, expected_local_status in expected_statuses.items():
+            with self.subTest(gateway_status=gateway_status):
+                transaction = self._create_transaction()
+                response = self.client.post(
+                    '/callback/payment/',
+                    data=json.dumps({
+                        'idempotency_key': transaction.idempotency_key,
+                        'transaction_id': f'gateway-{transaction.id}',
+                        'status': gateway_status,
+                    }),
+                    content_type='application/json',
+                    HTTP_HOST='127.0.0.1',
+                )
+
+                transaction.refresh_from_db()
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(transaction.status, expected_local_status)
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
@@ -347,7 +434,7 @@ class PaymentGatewayFallbackTests(TestCase):
         )
         self.transaction = Transaction.objects.create(
             user=self.user,
-            status='PENDING',
+            status='PENDING_PAYMENT',
             whatsapp_number='081234567890',
             cohort_year=2022,
             total_amount=Decimal('275000'),
@@ -398,6 +485,29 @@ class PaymentGatewayFallbackTests(TestCase):
         )
         self.assertEqual(self.transaction.payment_redirect_url, 'https://payment.ui.ac.id/pay/example')
 
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://dev-payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': '',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_does_not_use_implicit_prod_fallback(self, mocked_post):
+        mocked_post.side_effect = ConnectTimeout('primary timeout')
+
+        with self.assertRaisesMessage(ValueError, 'https://dev-payment.ui.ac.id'):
+            initiate_payment(self.transaction, self.request, 'Paket Alumni')
+
+        self.assertEqual(mocked_post.call_count, 1)
+        self.assertEqual(
+            mocked_post.call_args_list[0].args[0],
+            'https://dev-payment.ui.ac.id/api/v1/gateway/payments',
+        )
+
 
 class AdminSpreadsheetTests(TestCase):
     def setUp(self):
@@ -426,7 +536,7 @@ class AdminSpreadsheetTests(TestCase):
 
         self.transaction = Transaction.objects.create(
             user=self.regular_user,
-            status='PENDING',
+            status='PENDING_PAYMENT',
             whatsapp_number='081234567890',
             cohort_year=2022,
             total_amount=Decimal('275000'),

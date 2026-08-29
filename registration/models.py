@@ -18,14 +18,16 @@ class CustomUser(AbstractUser):
 # --- 2. TRANSAKSI (Keranjang Belanja) ---
 class Transaction(models.Model):
     STATUS_CHOICES = [
-        ('PENDING', 'Menunggu Pembayaran'),
-        ('PAID', 'Lunas'),
-        ('FAILED', 'Gagal/Batal'),
+        ('PENDING_PAYMENT', 'Menunggu Pembayaran'),
+        ('PENDING_CONFIRMATION', 'Menunggu Konfirmasi'),
+        ('PAID', 'Sukses'),
+        ('FAILED', 'Gagal'),
+        ('CANCELLED', 'Pesanan Dibatalkan'),
     ]
     # Relasi: 1 User bisa punya banyak Transaksi
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')
     transaction_id = models.CharField(max_length=50, unique=True, editable=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING_PAYMENT')
     whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name="Nomor WhatsApp")
     cohort_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Tahun Angkatan")
     idempotency_key = models.CharField(max_length=80, unique=True, editable=False, blank=True)

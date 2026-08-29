@@ -51,8 +51,12 @@ PACKAGE_DETAILS = {
 }
 
 STATUS_DETAILS = {
-    'PENDING': {
+    'PENDING_PAYMENT': {
         'class_name': 'status-waiting',
+        'label': 'Menunggu Pembayaran',
+    },
+    'PENDING_CONFIRMATION': {
+        'class_name': 'status-confirming',
         'label': 'Menunggu Konfirmasi',
     },
     'PAID': {
@@ -62,6 +66,10 @@ STATUS_DETAILS = {
     'FAILED': {
         'class_name': 'status-failed',
         'label': 'Gagal',
+    },
+    'CANCELLED': {
+        'class_name': 'status-cancelled',
+        'label': 'Pesanan Dibatalkan',
     },
 }
 
@@ -271,7 +279,7 @@ def _build_history_items(user):
             for ticket in tickets
             if ticket.tshirt_size and ticket.tshirt_size != 'NONE'
         ]
-        status = STATUS_DETAILS.get(transaction_obj.status, STATUS_DETAILS['PENDING'])
+        status = STATUS_DETAILS.get(transaction_obj.status, STATUS_DETAILS['PENDING_PAYMENT'])
 
         history_items.append({
             'transaction_id': transaction_obj.id,
@@ -316,7 +324,7 @@ def _create_checkout_transaction(request, package_type):
     with db_transaction.atomic():
         transaction_obj = Transaction.objects.create(
             user=request.user,
-            status='PENDING',
+            status='PENDING_PAYMENT',
             whatsapp_number=whatsapp_number,
             cohort_year=cohort_year,
             total_amount=Decimal('0'),
@@ -348,20 +356,6 @@ def _create_checkout_transaction(request, package_type):
         transaction_obj.save(update_fields=['total_amount'])
 
     return transaction_obj
-
-
-def _start_checkout_payment_flow(request, package_type):
-    transaction_obj = _create_checkout_transaction(request, package_type)
-    package_label = PACKAGE_DETAILS[package_type]['label']
-
-    try:
-        return initiate_payment(transaction_obj, request, package_label)
-    except ValueError:
-        if not is_terminal_local_status(transaction_obj.status):
-            transaction_obj.gateway_status = 'initiation_failed'
-            transaction_obj.failed_at = timezone.now()
-            transaction_obj.save(update_fields=['gateway_status', 'failed_at'])
-        raise
 
 
 def index(request):
@@ -512,8 +506,9 @@ def sso_login_callback(request):
 def checkout_alumni(request):
     if request.method == 'POST':
         try:
-            finpay_url = _start_checkout_payment_flow(request, 'ALUMNI_PACK')
-            return redirect(finpay_url)
+            _create_checkout_transaction(request, 'ALUMNI_PACK')
+            messages.success(request, 'Pesanan tersimpan. Silakan lanjutkan pembayaran melalui halaman History.')
+            return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-alumni.html')
@@ -534,7 +529,7 @@ def checkout_mahasiswa(request):
     ).select_related('transaction')
 
     for ticket in existing_student_tickets:
-        if ticket.transaction.status == 'PENDING':
+        if ticket.transaction.status in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
             messages.warning(request, 'Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di sini.')
             return redirect('history')
         if ticket.transaction.status == 'PAID':
@@ -543,8 +538,9 @@ def checkout_mahasiswa(request):
 
     if request.method == 'POST':
         try:
-            finpay_url = _start_checkout_payment_flow(request, 'STUDENT_PACK')
-            return redirect(finpay_url)
+            _create_checkout_transaction(request, 'STUDENT_PACK')
+            messages.success(request, 'Pesanan tersimpan. Silakan lanjutkan pembayaran melalui halaman History.')
+            return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
 
@@ -555,8 +551,9 @@ def checkout_mahasiswa(request):
 def checkout_non_paket(request):
     if request.method == 'POST':
         try:
-            finpay_url = _start_checkout_payment_flow(request, 'TICKET_ONLY')
-            return redirect(finpay_url)
+            _create_checkout_transaction(request, 'TICKET_ONLY')
+            messages.success(request, 'Pesanan tersimpan. Silakan lanjutkan pembayaran melalui halaman History.')
+            return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
     return render(request, 'registration/checkout-non-paket.html')
@@ -631,10 +628,12 @@ def retry_payment(request, transaction_id):
             transaction_obj = Transaction.objects.get(
                 id=transaction_id,
                 user=request.user,
-                status='PENDING',
+                status='PENDING_PAYMENT',
             )
 
             if transaction_obj.payment_redirect_url:
+                transaction_obj.status = 'PENDING_CONFIRMATION'
+                transaction_obj.save(update_fields=['status'])
                 return redirect(transaction_obj.payment_redirect_url)
 
             first_ticket = transaction_obj.tickets.order_by('id').first()
@@ -661,10 +660,14 @@ def retry_payment(request, transaction_id):
 
             package_label = PACKAGE_DETAILS[first_ticket.package_type]['label']
             finpay_url = initiate_payment(transaction_obj, request, package_label)
+            if transaction_obj.status == 'PENDING_PAYMENT':
+                transaction_obj.status = 'PENDING_CONFIRMATION'
+                transaction_obj.failed_at = None
+                transaction_obj.save(update_fields=['status', 'failed_at'])
             return redirect(finpay_url)
 
         except Transaction.DoesNotExist:
-            messages.error(request, 'Transaksi tidak ditemukan atau sudah tidak berstatus PENDING.')
+            messages.error(request, 'Transaksi tidak ditemukan atau sudah dilanjutkan ke pembayaran.')
             return redirect('history')
         except ValueError as error:
             messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
@@ -714,12 +717,15 @@ def manage_ticket(request):
         action = request.POST.get('action')
 
         try:
-            transaction_obj = Transaction.objects.get(id=transaction_id, user=request.user, status='PENDING')
+            transaction_obj = Transaction.objects.get(
+                id=transaction_id,
+                user=request.user,
+                status='PENDING_PAYMENT',
+            )
 
             if action == 'cancel':
-                transaction_obj.status = 'FAILED'
-                transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
-                transaction_obj.save(update_fields=['status', 'failed_at'])
+                transaction_obj.status = 'CANCELLED'
+                transaction_obj.save(update_fields=['status'])
                 messages.success(request, 'Pesanan berhasil dibatalkan. Kuota promo SSO Anda telah di-reset.')
 
             elif action == 'update':
@@ -753,6 +759,6 @@ def manage_ticket(request):
                 messages.success(request, 'Ukuran kaos berhasil diperbarui!')
 
         except Transaction.DoesNotExist:
-            messages.error(request, 'Aksi ditolak: Transaksi tidak ditemukan atau sudah tidak berstatus Menunggu Konfirmasi.')
+            messages.error(request, 'Aksi ditolak: Transaksi tidak ditemukan atau sudah dilanjutkan ke pembayaran.')
 
     return redirect('history')

@@ -66,8 +66,8 @@
    <div class="history-list">
     {% for item in history_items %}
     
-    <!-- UX Highlight Animasi: Menyala jika statusnya PENDING dan itu Paket Mahasiswa -->
-    <article class="history-card {% if item.raw_status == 'PENDING' and 'Mahasiswa' in item.package_name %}highlight-pop{% endif %}">
+    <!-- UX Highlight Animasi: Menyala jika Paket Mahasiswa masih menunggu pembayaran -->
+    <article class="history-card {% if item.raw_status == 'PENDING_PAYMENT' and 'Mahasiswa' in item.package_name %}highlight-pop{% endif %}">
      <h2 class="history-title">
       {{ item.package_name }}
      </h2>
@@ -114,8 +114,8 @@
       </span>
      </div>
 
-     <!-- Tombol Aksi (Hanya muncul saat PENDING) -->
-     {% if item.raw_status == 'PENDING' %}
+     <!-- Pesanan hanya bisa dibayar, diedit, atau dibatalkan sebelum masuk ke gateway. -->
+     {% if item.raw_status == 'PENDING_PAYMENT' %}
      <div style="display: flex; gap: 10px; margin-top: 15px; flex-direction: column;">
          <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin: 0;">
           {% csrf_token %}
@@ -139,7 +139,7 @@
      0 Transaksi
     </h1>
     <p>
-     Riwayat pembelian akan muncul ketika Anda melakukan pembayaran.
+     Belum ada transaksi.
     </p>
    </div>
    {% endif %}

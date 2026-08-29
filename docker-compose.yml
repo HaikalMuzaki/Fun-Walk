@@ -13,7 +13,7 @@ services:
     build: .
     command: gunicorn --bind 0.0.0.0:8000 core.wsgi:application
     env_file:
-      - .env
+      - .env.prod
     ports:
       - "8000:8000"
     environment:
@@ -38,7 +38,7 @@ services:
     build: .
     command: python manage.py runserver 0.0.0.0:8001
     env_file:
-      - .env
+      - .env.staging
     ports:
       - "8001:8001"
     environment:

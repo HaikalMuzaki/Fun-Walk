@@ -837,6 +837,16 @@ body {
   color: #a87800;
 }
 
+.status-confirming {
+  background: #fff0b8;
+  color: #9a6500;
+}
+
+.status-cancelled {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
 .history-detail {
   width: 100%;
 }

@@ -211,9 +211,11 @@ class TransactionAdmin(admin.ModelAdmin):
     @admin.display(description='Status', ordering='status')
     def status_badge(self, obj):
         color_map = {
-            'PENDING': '#c68b00',
+            'PENDING_PAYMENT': '#c68b00',
+            'PENDING_CONFIRMATION': '#b26a00',
             'PAID': '#0c8a43',
             'FAILED': '#d93025',
+            'CANCELLED': '#6b7280',
         }
         label = obj.get_status_display()
         color = color_map.get(obj.status, '#444444')

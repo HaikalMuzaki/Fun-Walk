@@ -16,13 +16,23 @@ PAYMENT_GATEWAY_PATH = '/api/v1/gateway/payments'
 
 GATEWAY_TO_LOCAL_STATUS = {
     'success': 'PAID',
+    'successful': 'PAID',
+    'paid': 'PAID',
+    'settled': 'PAID',
+    'completed': 'PAID',
     'failed': 'FAILED',
+    'failure': 'FAILED',
+    'denied': 'FAILED',
+    'rejected': 'FAILED',
+    'error': 'FAILED',
     'cancelled': 'FAILED',
+    'canceled': 'FAILED',
     'voided': 'FAILED',
     'expired': 'FAILED',
-    'pending': 'PENDING',
-    'initiated': 'PENDING',
-    'duplicate': 'PENDING',
+    'pending': 'PENDING_CONFIRMATION',
+    'initiated': 'PENDING_CONFIRMATION',
+    'processing': 'PENDING_CONFIRMATION',
+    'duplicate': 'PENDING_CONFIRMATION',
 }
 
 
@@ -62,12 +72,6 @@ def get_payment_gateway_base_urls(config):
     for candidate in [config['base_url'], config['fallback_base_url']]:
         if candidate and candidate not in base_urls:
             base_urls.append(candidate)
-
-    if (
-        config['base_url'] == 'https://dev-payment.ui.ac.id'
-        and 'https://payment.ui.ac.id' not in base_urls
-    ):
-        base_urls.append('https://payment.ui.ac.id')
 
     return base_urls
 
@@ -117,11 +121,11 @@ def normalize_gateway_status(status):
 
 
 def map_gateway_status_to_local(status):
-    return GATEWAY_TO_LOCAL_STATUS.get(normalize_gateway_status(status), 'PENDING')
+    return GATEWAY_TO_LOCAL_STATUS.get(normalize_gateway_status(status), 'PENDING_CONFIRMATION')
 
 
 def is_terminal_local_status(status):
-    return status in {'PAID', 'FAILED'}
+    return status in {'PAID', 'FAILED', 'CANCELLED'}
 
 
 def build_initiate_payload(transaction_obj, request, package_label):
@@ -157,12 +161,24 @@ def store_initiate_response(transaction_obj, response_data, redirect_url):
     transaction_obj.gateway_status = data.get('status') or transaction_obj.gateway_status
     transaction_obj.payment_redirect_url = redirect_url or transaction_obj.payment_redirect_url
     transaction_obj.gateway_response_payload = response_data
+
+    next_status = map_gateway_status_to_local(transaction_obj.gateway_status)
+    if not is_terminal_local_status(transaction_obj.status):
+        transaction_obj.status = next_status
+        if next_status == 'PAID':
+            transaction_obj.paid_at = transaction_obj.paid_at or timezone.now()
+        elif next_status == 'FAILED':
+            transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
+
     transaction_obj.save(
         update_fields=[
+            'status',
             'gateway_transaction_id',
             'gateway_status',
             'payment_redirect_url',
             'gateway_response_payload',
+            'paid_at',
+            'failed_at',
         ]
     )
 
