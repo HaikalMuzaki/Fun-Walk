@@ -32,7 +32,13 @@ GATEWAY_TO_LOCAL_STATUS = {
     'success': 'PAID',
     'successful': 'PAID',
     'paid': 'PAID',
+    'authorize': 'PAID',
+    'authorized': 'PAID',
+    'auth': 'PAID',
+    'capture': 'PAID',
+    'captured': 'PAID',
     'settled': 'PAID',
+    'settlement': 'PAID',
     'completed': 'PAID',
     'failed': 'FAILED',
     'failure': 'FAILED',
@@ -46,6 +52,8 @@ GATEWAY_TO_LOCAL_STATUS = {
     'pending': 'PENDING_CONFIRMATION',
     'initiated': 'PENDING_CONFIRMATION',
     'processing': 'PENDING_CONFIRMATION',
+    'challenge': 'PENDING_CONFIRMATION',
+    'authentication_required': 'PENDING_CONFIRMATION',
     'duplicate': 'PENDING_CONFIRMATION',
 }
 

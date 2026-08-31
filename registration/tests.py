@@ -479,6 +479,8 @@ class PaymentStatusFlowTests(TestCase):
         expected_statuses = {
             'processing': 'PENDING_CONFIRMATION',
             'success': 'PAID',
+            'capture': 'PAID',
+            'authorized': 'PAID',
             'failed': 'FAILED',
         }
 
