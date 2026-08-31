@@ -3,7 +3,9 @@ import hmac
 import json
 import logging
 import os
+import re
 import time
+from urllib.parse import urljoin
 
 import requests
 from django.urls import reverse
@@ -124,14 +126,55 @@ def generate_signed_headers(api_key, signing_secret, method, path, body_str=''):
 
 
 def extract_redirect_url(response_data):
+    def _is_payment_redirect_candidate(value, prefer_any_http_url=False):
+        if not isinstance(value, str):
+            return False
+
+        normalized_value = value.strip()
+        if not normalized_value:
+            return False
+
+        if normalized_value.startswith('/'):
+            return '/pg/payment/' in normalized_value or '/pay/' in normalized_value
+
+        if not normalized_value.startswith(('http://', 'https://')):
+            return False
+
+        if prefer_any_http_url:
+            return True
+
+        return (
+            'finpay' in normalized_value
+            or '/pg/payment/' in normalized_value
+            or '/pay/' in normalized_value
+        )
+
+    def _extract_url_from_text(value):
+        if not isinstance(value, str):
+            return ''
+
+        http_match = re.search(r'https?://[^\s"\'<>]+', value)
+        if http_match:
+            candidate = http_match.group(0).strip()
+            if _is_payment_redirect_candidate(candidate):
+                return candidate
+
+        relative_match = re.search(r'(/pg/payment/[^\s"\'<>]+)', value)
+        if relative_match:
+            candidate = relative_match.group(1).strip()
+            if _is_payment_redirect_candidate(candidate):
+                return candidate
+
+        return ''
+
     def _extract_from_value(value, prefer_any_http_url=False):
         if isinstance(value, str):
             normalized_value = value.strip()
-            if normalized_value.startswith(('http://', 'https://')):
-                if prefer_any_http_url:
-                    return normalized_value
-                if 'finpay' in normalized_value or '/pg/payment/' in normalized_value or '/pay/' in normalized_value:
-                    return normalized_value
+            if _is_payment_redirect_candidate(normalized_value, prefer_any_http_url=prefer_any_http_url):
+                return normalized_value
+            embedded_url = _extract_url_from_text(normalized_value)
+            if embedded_url:
+                return embedded_url
             return ''
 
         if isinstance(value, dict):
@@ -155,6 +198,69 @@ def extract_redirect_url(response_data):
         return ''
 
     return _extract_from_value(response_data, prefer_any_http_url=False)
+
+
+def extract_redirect_url_from_http_response(response, request_path=''):
+    location_header = (response.headers or {}).get('Location', '').strip()
+    if location_header:
+        if location_header.startswith(('http://', 'https://')):
+            return location_header
+        if location_header.startswith('/'):
+            base_url = (getattr(response, 'url', '') or '').strip()
+            if base_url.startswith(('http://', 'https://')):
+                return urljoin(base_url, location_header)
+
+    final_url = (getattr(response, 'url', '') or '').strip()
+    if final_url.startswith(('http://', 'https://')) and request_path and request_path not in final_url:
+        return final_url
+
+    response_text = (getattr(response, 'text', '') or '').strip()
+    if response_text:
+        http_match = re.search(r'https?://[^\s"\'<>]+', response_text)
+        if http_match:
+            return http_match.group(0).strip()
+
+        relative_match = re.search(r'(/pg/payment/[^\s"\'<>]+)', response_text)
+        if relative_match:
+            relative_url = relative_match.group(1).strip()
+            if final_url.startswith(('http://', 'https://')):
+                return urljoin(final_url, relative_url)
+            return relative_url
+
+    return ''
+
+
+def build_gateway_response_payload(response, response_data):
+    if response_data:
+        return response_data
+
+    payload = {
+        'raw_status_code': response.status_code,
+        'final_url': getattr(response, 'url', ''),
+        'headers': dict(getattr(response, 'headers', {}) or {}),
+    }
+    response_text = getattr(response, 'text', '') or ''
+    if response_text:
+        payload['raw_text_preview'] = response_text[:2000]
+    return payload
+
+
+def normalize_redirect_url(redirect_url, response=None, base_url=''):
+    normalized_redirect_url = (redirect_url or '').strip()
+    if not normalized_redirect_url:
+        return ''
+
+    if normalized_redirect_url.startswith(('http://', 'https://')):
+        return normalized_redirect_url
+
+    if normalized_redirect_url.startswith('/'):
+        response_url = (getattr(response, 'url', '') or '').strip() if response is not None else ''
+        if response_url.startswith(('http://', 'https://')):
+            return urljoin(response_url, normalized_redirect_url)
+        if base_url:
+            return urljoin(base_url.rstrip('/') + '/', normalized_redirect_url.lstrip('/'))
+
+    return normalized_redirect_url
 
 
 def normalize_gateway_status(status):
@@ -238,11 +344,13 @@ def _request_with_base_url_failover(method, path, headers, body_bytes=None, time
                     f'{base_url}{path}',
                     headers=headers,
                     data=body_bytes,
+                    allow_redirects=True,
                     timeout=timeout,
                 )
             return requests.get(
                 f'{base_url}{path}',
                 headers=headers,
+                allow_redirects=True,
                 timeout=timeout,
             )
         except RequestException as error:
@@ -284,15 +392,21 @@ def initiate_payment(transaction_obj, request, package_label):
         error_message = response_data.get('error') or response_data.get('message') or response.text
         raise ValueError(f'Gateway Error {response.status_code}: {error_message}')
 
-    redirect_url = extract_redirect_url(response_data)
+    payload_to_store = build_gateway_response_payload(response, response_data)
+    redirect_url = extract_redirect_url(payload_to_store)
     if not redirect_url:
+        redirect_url = extract_redirect_url_from_http_response(response, request_path=PAYMENT_GATEWAY_PATH)
+    redirect_url = normalize_redirect_url(redirect_url, response=response, base_url=config['base_url'])
+    if not redirect_url:
+        transaction_obj.gateway_response_payload = payload_to_store
+        transaction_obj.save(update_fields=['gateway_response_payload'])
         logger.error(
             'Gateway merespons tanpa redirect URL yang dikenali. response_data=%s',
-            json.dumps(response_data, ensure_ascii=False),
+            json.dumps(payload_to_store, ensure_ascii=False),
         )
         raise ValueError('Gateway berhasil merespons, tetapi redirect_url tidak ditemukan di response.')
 
-    store_initiate_response(transaction_obj, response_data, redirect_url)
+    store_initiate_response(transaction_obj, payload_to_store, redirect_url)
     return redirect_url
 
 

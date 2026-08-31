@@ -689,6 +689,106 @@ class PaymentGatewayFallbackTests(TestCase):
         clear=False,
     )
     @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_uses_final_response_url_when_gateway_returns_html(self, mocked_post):
+        success_response = Mock()
+        success_response.status_code = 200
+        success_response.url = 'https://devo.finpay.id/pg/payment/card/id/v2/access/html-token'
+        success_response.headers = {}
+        success_response.text = '<html><body>redirected</body></html>'
+        success_response.json.side_effect = ValueError('not json')
+        mocked_post.return_value = success_response
+
+        redirect_url = initiate_payment(self.transaction, self.request, 'Paket Alumni')
+        self.transaction.refresh_from_db()
+
+        self.assertEqual(
+            redirect_url,
+            'https://devo.finpay.id/pg/payment/card/id/v2/access/html-token',
+        )
+        self.assertEqual(
+            self.transaction.payment_redirect_url,
+            'https://devo.finpay.id/pg/payment/card/id/v2/access/html-token',
+        )
+
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://dev-payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': '',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_extracts_url_embedded_in_json_text(self, mocked_post):
+        success_response = Mock()
+        success_response.status_code = 201
+        success_response.json.return_value = {
+            'success': True,
+            'message': 'Open payment page https://devo.finpay.id/pg/payment/card/id/v2/access/embedded-token',
+            'data': {
+                'transaction_id': 'gateway-uuid',
+                'status': 'initiated',
+            },
+        }
+        mocked_post.return_value = success_response
+
+        redirect_url = initiate_payment(self.transaction, self.request, 'Paket Alumni')
+        self.transaction.refresh_from_db()
+
+        self.assertEqual(
+            redirect_url,
+            'https://devo.finpay.id/pg/payment/card/id/v2/access/embedded-token',
+        )
+        self.assertEqual(
+            self.transaction.payment_redirect_url,
+            'https://devo.finpay.id/pg/payment/card/id/v2/access/embedded-token',
+        )
+
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://dev-payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': '',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_extracts_relative_location_redirect(self, mocked_post):
+        success_response = Mock()
+        success_response.status_code = 200
+        success_response.url = 'https://dev-payment.ui.ac.id/api/v1/gateway/payments'
+        success_response.headers = {'Location': '/pg/payment/card/id/v2/access/relative-token'}
+        success_response.text = ''
+        success_response.json.side_effect = ValueError('not json')
+        mocked_post.return_value = success_response
+
+        redirect_url = initiate_payment(self.transaction, self.request, 'Paket Alumni')
+        self.transaction.refresh_from_db()
+
+        self.assertEqual(
+            redirect_url,
+            'https://dev-payment.ui.ac.id/pg/payment/card/id/v2/access/relative-token',
+        )
+        self.assertEqual(
+            self.transaction.payment_redirect_url,
+            'https://dev-payment.ui.ac.id/pg/payment/card/id/v2/access/relative-token',
+        )
+
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://dev-payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': '',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
     def test_initiate_payment_does_not_use_implicit_prod_fallback(self, mocked_post):
         mocked_post.side_effect = ConnectTimeout('primary timeout')
 
