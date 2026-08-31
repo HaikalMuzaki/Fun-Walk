@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 PACKAGE_DETAILS = {
     'ALUMNI_PACK': {
-        'label': 'Paket Alumni',
+        'label': 'Paket Umum',
         'template': 'registration/checkout-alumni.html',
     },
     'STUDENT_PACK': {
@@ -387,10 +387,10 @@ def _create_checkout_transaction(request, package_type):
         total_amount = Decimal('0')
         for index in range(quantity):
             if package_type == 'ALUMNI_PACK':
-                price = Decimal('275000')
+                price = Decimal('250000')
                 tshirt_size = tshirt_sizes[index]
             elif package_type == 'STUDENT_PACK':
-                price = Decimal('175000') if index == 0 else Decimal('275000')
+                price = Decimal('150000') if index == 0 else Decimal('250000')
                 tshirt_size = tshirt_sizes[index]
             else:
                 price = Decimal('50000')

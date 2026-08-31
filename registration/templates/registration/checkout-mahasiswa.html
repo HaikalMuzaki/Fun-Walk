@@ -11,7 +11,7 @@
     </h1>
     
     <!-- data-unit-price diset 175000 biar logic js bawaan temen lu nangkep 175rb -->
-    <form method="POST" action="" data-unit-price="275000" data-discounted-unit-price="175000" id="registration-form">
+    <form method="POST" action="" data-unit-price="250000" data-discounted-unit-price="175000" id="registration-form">
       {% csrf_token %}
       {% if messages %}
       <div class="form-errors">
@@ -106,7 +106,7 @@
       
       <div class="checkout-total">
         <span>Total Harga</span>
-        <strong id="total-price">Rp175.000</strong>
+        <strong id="total-price">Rp150.000</strong>
       </div>
       
       <button class="payment-button" type="submit">
