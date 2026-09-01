@@ -367,6 +367,8 @@ def _create_checkout_transaction(request, package_type):
         raise ValueError('Last name wajib diisi.')
     if cohort_year is None:
         raise ValueError('Tahun angkatan wajib diisi.')
+    if package_type == 'TICKET_ONLY' and not 1985 <= cohort_year <= 2026:
+        raise ValueError('Tahun angkatan Non-Paket harus antara 1985 dan 2026.')
 
     tshirt_sizes = []
     if package_type != 'TICKET_ONLY':
@@ -614,7 +616,11 @@ def checkout_non_paket(request):
             return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
-    return render(request, 'registration/checkout-non-paket.html')
+    return render(
+        request,
+        'registration/checkout-non-paket.html',
+        {'cohort_years': range(1985, 2027)},
+    )
 
 
 @login_required

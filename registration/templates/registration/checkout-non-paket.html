@@ -80,7 +80,16 @@
       <label for="id_cohort_year">
        Angkatan
       </label>
-      <input id="id_cohort_year" name="cohort_year" required="" type="number"/>
+      <select id="id_cohort_year" name="cohort_year" required="">
+       <option value="" selected disabled>
+        Pilih angkatan
+       </option>
+       {% for year in cohort_years %}
+       <option value="{{ year }}">
+        {{ year }}
+       </option>
+       {% endfor %}
+      </select>
      </div>
      <div class="checkout-field">
       <label for="id_degree_level">
