@@ -48,7 +48,7 @@ GATEWAY_TO_LOCAL_STATUS = {
     'cancelled': 'FAILED',
     'canceled': 'FAILED',
     'voided': 'FAILED',
-    'expired': 'FAILED',
+    'expired': 'EXPIRED',
     'pending': 'PENDING_CONFIRMATION',
     'initiated': 'PENDING_CONFIRMATION',
     'processing': 'PENDING_CONFIRMATION',
@@ -280,7 +280,7 @@ def map_gateway_status_to_local(status):
 
 
 def is_terminal_local_status(status):
-    return status in {'PAID', 'FAILED', 'CANCELLED'}
+    return status in {'PAID', 'FAILED', 'EXPIRED', 'CANCELLED'}
 
 
 def build_initiate_payload(transaction_obj, request, package_label):

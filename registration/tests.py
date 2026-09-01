@@ -5,12 +5,14 @@ from requests.exceptions import ConnectTimeout, RequestException
 from unittest.mock import patch
 from unittest.mock import Mock
 from decimal import Decimal
+from datetime import timedelta
 import json
 import os
 import shutil
 import tempfile
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from . import views
 from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
@@ -333,6 +335,37 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         transaction = Transaction.objects.get(user=user)
         self.assertEqual(transaction.cohort_year, 2024)
+
+    def test_history_expires_pending_payment_after_six_minutes(self):
+        user = CustomUser.objects.create_user(
+            username='expired@gmail.com',
+            email='expired@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        transaction = Transaction.objects.create(
+            user=user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('275000'),
+        )
+        Ticket.objects.create(
+            transaction=transaction,
+            first_name='Peserta',
+            last_name='Expired',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('275000'),
+        )
+        Transaction.objects.filter(pk=transaction.pk).update(
+            created_at=timezone.now() - timedelta(minutes=7),
+        )
+
+        self.client.force_login(user)
+        response = self.client.get('/history/', HTTP_HOST='127.0.0.1')
+
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, 'EXPIRED')
+        self.assertContains(response, 'Kedaluwarsa')
 
     @patch('registration.views.initiate_payment', return_value='https://payment.example/retry')
     def test_retry_payment_rotates_idempotency_key_when_redirect_url_missing(self, mocked_initiate_payment):

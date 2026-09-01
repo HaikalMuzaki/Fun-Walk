@@ -223,6 +223,7 @@ class TransactionAdmin(admin.ModelAdmin):
             'PENDING_CONFIRMATION': '#b26a00',
             'PAID': '#0c8a43',
             'FAILED': '#d93025',
+            'EXPIRED': '#6b7280',
             'CANCELLED': '#6b7280',
         }
         label = obj.get_status_display()

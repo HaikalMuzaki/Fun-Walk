@@ -1,11 +1,13 @@
 import json
 import logging
+from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import parse_qs
 from xml.etree.ElementTree import ParseError
 
 from cas import CASError
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
@@ -68,6 +70,10 @@ STATUS_DETAILS = {
     'FAILED': {
         'class_name': 'status-failed',
         'label': 'Gagal',
+    },
+    'EXPIRED': {
+        'class_name': 'status-failed',
+        'label': 'Kedaluwarsa',
     },
     'CANCELLED': {
         'class_name': 'status-cancelled',
@@ -345,19 +351,38 @@ def _sync_pending_transactions_for_user(user):
             user=user,
             status__in=['PENDING_PAYMENT', 'PENDING_CONFIRMATION'],
         )
-        .exclude(gateway_transaction_id='')
         .order_by('-created_at')
     )
 
     for transaction_obj in pending_transactions:
-        try:
-            refresh_transaction_status(transaction_obj)
-        except ValueError as error:
-            logger.warning(
-                'Sinkronisasi status gateway gagal untuk %s: %s',
-                transaction_obj.transaction_id,
-                error,
-            )
+        if transaction_obj.gateway_transaction_id:
+            try:
+                refresh_transaction_status(transaction_obj)
+            except ValueError as error:
+                logger.warning(
+                    'Sinkronisasi status gateway gagal untuk %s: %s',
+                    transaction_obj.transaction_id,
+                    error,
+                )
+        _expire_transaction_if_overdue(transaction_obj)
+
+
+def _expire_transaction_if_overdue(transaction_obj, now=None):
+    if transaction_obj.status not in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
+        return False
+
+    now = now or timezone.now()
+    expiration_time = transaction_obj.created_at + timedelta(
+        minutes=settings.PAYMENT_EXPIRY_MINUTES,
+    )
+    if now <= expiration_time:
+        return False
+
+    transaction_obj.status = 'EXPIRED'
+    transaction_obj.failed_at = now
+    transaction_obj.payment_redirect_url = ''
+    transaction_obj.save(update_fields=['status', 'failed_at', 'payment_redirect_url'])
+    return True
 
 
 def _create_checkout_transaction(request, package_type, *, cohort_year_override=None):
@@ -699,11 +724,15 @@ def payment_page(request):
                 error,
             )
 
+    if _expire_transaction_if_overdue(transaction_obj):
+        messages.error(request, 'Pembayaran ini sudah kedaluwarsa setelah 6 menit.')
+        return redirect('history')
+
     if transaction_obj.status == 'PAID':
         messages.success(request, 'Pembayaran berhasil dikonfirmasi.')
         return redirect('history')
 
-    if transaction_obj.status in {'FAILED', 'CANCELLED'}:
+    if transaction_obj.status in {'FAILED', 'EXPIRED', 'CANCELLED'}:
         messages.error(request, 'Pembayaran tidak berhasil. Silakan coba lagi.')
         return redirect('history')
 
@@ -744,6 +773,10 @@ def retry_payment(request, transaction_id):
                 user=request.user,
                 status__in=['PENDING_PAYMENT', 'PENDING_CONFIRMATION'],
             )
+
+            if _expire_transaction_if_overdue(transaction_obj):
+                messages.error(request, 'Pembayaran ini sudah kedaluwarsa setelah 6 menit.')
+                return redirect('history')
 
             if transaction_obj.payment_redirect_url:
                 if transaction_obj.status == 'PENDING_PAYMENT':
@@ -838,6 +871,9 @@ def payment_callback(request):
         except Transaction.DoesNotExist:
             return JsonResponse({'error': 'Transaksi tidak ditemukan'}, status=404)
 
+        if _expire_transaction_if_overdue(transaction_obj):
+            return JsonResponse({'message': 'Transaksi sudah kedaluwarsa.'}, status=200)
+
         next_status = status.strip().lower()
         current_gateway_status = transaction_obj.gateway_status.strip().lower() if transaction_obj.gateway_status else ''
         if current_gateway_status == next_status:
@@ -868,6 +904,10 @@ def manage_ticket(request):
                 user=request.user,
                 status='PENDING_PAYMENT',
             )
+
+            if _expire_transaction_if_overdue(transaction_obj):
+                messages.error(request, 'Pesanan sudah kedaluwarsa setelah 6 menit.')
+                return redirect('history')
 
             if action == 'cancel':
                 transaction_obj.status = 'CANCELLED'

@@ -29,6 +29,9 @@ SECRET_KEY = 'django-insecure-nq-b@rbpm+4xiday4pxzooolcr%sw)+qo1a$^hi0m5_(zg+kdw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Pending payments are no longer usable after this interval.
+PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
+
 ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'funwalk.cs.ui.ac.id', 'leopard40.cs.ui.ac.id']
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -33,6 +33,7 @@ class Transaction(models.Model):
         ('PENDING_CONFIRMATION', 'Menunggu Konfirmasi'),
         ('PAID', 'Sukses'),
         ('FAILED', 'Gagal'),
+        ('EXPIRED', 'Kedaluwarsa'),
         ('CANCELLED', 'Pesanan Dibatalkan'),
     ]
     # Relasi: 1 User bisa punya banyak Transaksi
