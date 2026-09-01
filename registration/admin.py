@@ -148,6 +148,13 @@ class CustomUserAdmin(UserAdmin):
         ('Info Tambahan Fun Walk', {'fields': ('user_type', 'npm', 'address')}),
     )
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        # Blokir absolut: checkbox is_superuser dimatikan untuk SEMUA orang
+        if 'is_superuser' not in readonly:
+            readonly.append('is_superuser')
+        return readonly
+
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
@@ -162,9 +169,40 @@ class TransactionAdmin(admin.ModelAdmin):
         'total_amount',
         'created_at_local',
     )
-    list_filter = ('status', 'user__user_type')
+    # Tambahkan payment_channel agar admin bisa memfilter metode bayar
+    list_filter = ('status', 'payment_channel', 'user__user_type')
     actions = [export_selected_transactions_to_csv]
-    search_fields = ('transaction_id', 'user__username', 'user__email', 'tickets__attendee_name')
+    
+    # PERBAIKAN: Ubah tickets__attendee_name jadi first_name & last_name untuk mencegah error 500
+    search_fields = ('transaction_id', 'user__username', 'user__email', 'tickets__first_name', 'tickets__last_name')
+
+    # Lindungi data sensitif gateway agar tidak bisa diubah admin secara manual
+    readonly_fields = (
+        'transaction_id', 'idempotency_key', 'total_amount', 'created_at',
+        'gateway_transaction_id', 'gateway_status', 'payment_channel',
+        'payment_type', 'payment_redirect_url', 'paid_at', 'failed_at',
+        'gateway_response_payload', 'gateway_callback_payload'
+    )
+
+    # Struktur UI baru di halaman Detail Transaksi untuk melihat info lengkap
+    fieldsets = (
+        ('Informasi Pesanan', {
+            'fields': ('transaction_id', 'user', 'status', 'total_amount', 'created_at')
+        }),
+        ('Data Pemesan', {
+            'fields': ('whatsapp_number', 'cohort_year', 'degree_level', 'study_program')
+        }),
+        ('Detail Pembayaran (Gateway)', {
+            'fields': (
+                'gateway_transaction_id', 'gateway_status', 'payment_channel',
+                'payment_type', 'paid_at', 'failed_at', 'payment_redirect_url'
+            )
+        }),
+        ('Log Payload API Teknis', {
+            'fields': ('idempotency_key', 'gateway_response_payload', 'gateway_callback_payload'),
+            'classes': ('collapse',) # Disembunyikan secara default agar UI tidak kepanjangan
+        }),
+    )
 
     def get_urls(self):
         custom_urls = [
@@ -289,7 +327,7 @@ class TransactionAdmin(admin.ModelAdmin):
 class TicketAdmin(admin.ModelAdmin):
     list_display = ('attendee_name', 'transaction', 'package_type', 'tshirt_size', 'price')
     list_filter = ('package_type', 'tshirt_size')
-    search_fields = ('attendee_name', 'transaction__transaction_id')
+    search_fields = ('first_name', 'last_name', 'transaction__transaction_id')
 
 
 @admin.register(EventInfo)
