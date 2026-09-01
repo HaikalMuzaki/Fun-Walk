@@ -284,7 +284,7 @@ body {
 }
 
 .walk {
-  --event-image: url("https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=700&q=80");
+  --event-image: url("/static/registration/assets/fw.jpeg");
 }
 
 .games {
@@ -292,7 +292,7 @@ body {
 }
 
 .health {
-  --event-image: url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=700&q=80");
+  --event-image: url("/static/registration/assets/pemkes.JPG");
 }
 
 .star {
@@ -1730,4 +1730,26 @@ body {
   border-radius: 5px;
   font-family: inherit;
   box-sizing: border-box;
+}
+
+.package-item {
+  position: relative;
+}
+
+/* Membuat label melayang meniban garis atas kartu */
+.package-badge {
+  position: absolute !important;
+  top: -15px; /* Menggeser label ke atas menembus border */
+  left: 50%; /* Membawa ke tengah */
+  transform: translateX(-50%); /* Menyeimbangkan posisi tepat di tengah */
+  z-index: 10; /* Memastikan label berada di layar paling depan */
+  margin: 0 !important; /* Menghilangkan margin bawaan yang bikin bocor */
+  
+  /* Opsional: Tambahkan shadow kecil agar terlihat menonjol */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+}
+
+/* Memberi jarak aman pada konten di dalam kartu agar tidak tertutup label yang melayang */
+.package-item--student .package-info {
+  margin-top: 15px; 
 }
