@@ -426,7 +426,7 @@ body {
 
 .package-item--student {
   position: relative;
-  padding-top: 15px; /* Ruang aman di atas agar label tidak terpotong */
+  padding-top: 0; /* Ruang aman di atas agar label tidak terpotong */
 }
 
 .package-info {
@@ -442,7 +442,7 @@ body {
 
 .package-badge {
   position: absolute;
-  top: 15px; /* Turunkan titik jangkar ke batas atas kartu kuning */
+  top: 0; /* Turunkan titik jangkar ke batas atas kartu kuning */
   left: 50%;
   z-index: 10;
   padding: 0.3rem 0.75rem;
