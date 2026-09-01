@@ -100,10 +100,16 @@ class Ticket(models.Model):
     
     # Relasi: 1 Transaksi bisa punya banyak Tiket (Pax)
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name='tickets')
-    attendee_name = models.CharField(max_length=150, verbose_name="Nama Peserta (Pax)")
+    first_name = models.CharField(max_length=100, verbose_name="Nama Depan Peserta (Pax)", default='')
+    last_name = models.CharField(max_length=100, verbose_name="Nama Belakang Peserta (Pax)", default='')
     package_type = models.CharField(max_length=20, choices=PACKAGE_CHOICES)
     tshirt_size = models.CharField(max_length=10, choices=SIZE_CHOICES, default='NONE')
     price = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
+
+    @property
+    def attendee_name(self):
+        """Helper property agar kode lama yang memanggil .attendee_name tetap jalan mulus"""
+        return f"{self.first_name} {self.last_name}".strip()
 
     def save(self, *args, **kwargs):
         # Auto-set harga default berdasarkan pilihan paket, kecuali sudah diset eksplisit.

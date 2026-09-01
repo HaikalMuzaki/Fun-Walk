@@ -349,7 +349,8 @@ def _sync_pending_transactions_for_user(user):
 
 
 def _create_checkout_transaction(request, package_type):
-    full_name = (request.POST.get('full_name') or '').strip()
+    first_name = (request.POST.get('first_name') or '').strip()
+    last_name = (request.POST.get('last_name') or '').strip()
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
     cohort_year = _parse_cohort_year(request.POST.get('cohort_year'))
     degree_level = _parse_degree_level(request.POST.get('degree_level'))
@@ -360,8 +361,10 @@ def _create_checkout_transaction(request, package_type):
         raise ValueError('Jumlah tiket tidak valid.')
     quantity = max(1, min(5, quantity))
 
-    if not full_name:
-        raise ValueError('Nama Lengkap wajib diisi.')
+    if not first_name:
+        raise ValueError('First name wajib diisi.')
+    if not last_name:
+        raise ValueError('Last name wajib diisi.')
     if cohort_year is None:
         raise ValueError('Tahun angkatan wajib diisi.')
 
@@ -398,7 +401,8 @@ def _create_checkout_transaction(request, package_type):
 
             ticket = Ticket(
                 transaction=transaction_obj,
-                attendee_name=full_name,
+                first_name=first_name,
+                last_name=last_name,
                 package_type=package_type,
                 tshirt_size=tshirt_size,
                 price=price,
