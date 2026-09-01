@@ -426,7 +426,7 @@ body {
 
 .package-item--student {
   position: relative;
-  padding-top: 0.7rem;
+  padding-top: 15px; /* Ruang aman di atas agar label tidak terpotong */
 }
 
 .package-info {
@@ -442,9 +442,9 @@ body {
 
 .package-badge {
   position: absolute;
-  top: 0;
+  top: 15px; /* Turunkan titik jangkar ke batas atas kartu kuning */
   left: 50%;
-  z-index: 2;
+  z-index: 10;
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: linear-gradient(135deg, #fffdf0 0%, #ffd86b 100%);
@@ -453,10 +453,13 @@ body {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow: 0 0.22rem 0.45rem rgb(0 0 0 / 14%);
+  box-shadow: 0 0.3rem 0.6rem rgba(0, 0, 0, 0.15); /* Pertegas bayangan agar lebih pop up */
   border: 0.08rem solid rgb(255 255 255 / 65%);
-  transform: translate(-50%, -45%) rotate(-4deg);
+  
+  /* Trik meniban tengah border (sumbu Y -50%) dengan rotasi miring asli bawaan UI */
+  transform: translate(-50%, -50%) rotate(-4deg);
   white-space: nowrap;
+  margin: 0;
 }
 
 .package-name {
@@ -1736,20 +1739,17 @@ body {
   position: relative;
 }
 
-/* Membuat label melayang meniban garis atas kartu */
-.package-badge {
-  position: absolute !important;
-  top: -15px; /* Menggeser label ke atas menembus border */
-  left: 50%; /* Membawa ke tengah */
-  transform: translateX(-50%); /* Menyeimbangkan posisi tepat di tengah */
-  z-index: 10; /* Memastikan label berada di layar paling depan */
-  margin: 0 !important; /* Menghilangkan margin bawaan yang bikin bocor */
-  
-  /* Opsional: Tambahkan shadow kecil agar terlihat menonjol */
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-}
+
 
 /* Memberi jarak aman pada konten di dalam kartu agar tidak tertutup label yang melayang */
-.package-item--student .package-info {
-  margin-top: 15px; 
+.package-info {
+  min-height: 8.2rem;
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0.75rem;
+  border-radius: 0.7rem;
+  background: #ffed78;
+  margin-top: 0; 
 }
