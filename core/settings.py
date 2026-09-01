@@ -32,11 +32,11 @@ DEBUG = True
 # Pending payments are no longer usable after this interval.
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
 
-ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'funwalk.cs.ui.ac.id', 'leopard40.cs.ui.ac.id']
+ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'dn.cs.ui.ac.id', 'leopard40.cs.ui.ac.id']
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [
-    'https://funwalk.cs.ui.ac.id',
+    'https://dn.cs.ui.ac.id',
     'https://leopard40.cs.ui.ac.id',
 ]
 
