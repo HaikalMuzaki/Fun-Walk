@@ -73,7 +73,7 @@ STATUS_DETAILS = {
     },
     'EXPIRED': {
         'class_name': 'status-failed',
-        'label': 'Kedaluwarsa',
+        'label': 'Expired',
     },
     'CANCELLED': {
         'class_name': 'status-cancelled',
@@ -373,7 +373,7 @@ def _expire_transaction_if_overdue(transaction_obj, now=None):
 
     now = now or timezone.now()
     expiration_time = transaction_obj.created_at + timedelta(
-        minutes=settings.PAYMENT_EXPIRY_MINUTES,
+        minutes=getattr(settings, 'PAYMENT_EXPIRY_MINUTES', 6),
     )
     if now <= expiration_time:
         return False
