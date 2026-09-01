@@ -305,6 +305,35 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.tickets.count(), 2)
         mocked_initiate_payment.assert_not_called()
 
+    def test_checkout_mahasiswa_uses_cohort_year_from_sso_npm(self):
+        user = CustomUser.objects.create_user(
+            username='2400000002',
+            email='mahasiswa@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2400000002',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/mahasiswa/',
+            {
+                'first_name': 'Mahasiswa',
+                'last_name': 'UI',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2023',
+                'degree_level': 'S1',
+                'study_program': 'ILMU_KOMPUTER',
+                'ticket_quantity': '1',
+                'shirt_size_1': 'M',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(user=user)
+        self.assertEqual(transaction.cohort_year, 2024)
+
     @patch('registration.views.initiate_payment', return_value='https://payment.example/retry')
     def test_retry_payment_rotates_idempotency_key_when_redirect_url_missing(self, mocked_initiate_payment):
         user = CustomUser.objects.create_user(

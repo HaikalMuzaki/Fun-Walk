@@ -93,6 +93,18 @@ def _is_student_sso_user(user):
     return getattr(user, 'user_type', '') == 'STUDENT'
 
 
+def _get_sso_student_cohort_year(user):
+    """Derive the admission year from the NPM supplied by SSO UI."""
+    npm = ''.join(character for character in (getattr(user, 'npm', '') or '') if character.isdigit())
+    if len(npm) < 2:
+        return None
+
+    cohort_year = 2000 + int(npm[:2])
+    if 2023 <= cohort_year <= 2026:
+        return cohort_year
+    return None
+
+
 def _get_password_requirement_errors(password):
     errors = []
 
@@ -348,11 +360,15 @@ def _sync_pending_transactions_for_user(user):
             )
 
 
-def _create_checkout_transaction(request, package_type):
+def _create_checkout_transaction(request, package_type, *, cohort_year_override=None):
     first_name = (request.POST.get('first_name') or '').strip()
     last_name = (request.POST.get('last_name') or '').strip()
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
-    cohort_year = _parse_cohort_year(request.POST.get('cohort_year'))
+    cohort_year = (
+        cohort_year_override
+        if cohort_year_override is not None
+        else _parse_cohort_year(request.POST.get('cohort_year'))
+    )
     degree_level = _parse_degree_level(request.POST.get('degree_level'))
     study_program = _parse_study_program(request.POST.get('study_program'))
     try:
@@ -369,6 +385,8 @@ def _create_checkout_transaction(request, package_type):
         raise ValueError('Tahun angkatan wajib diisi.')
     if package_type == 'TICKET_ONLY' and not 1985 <= cohort_year <= 2026:
         raise ValueError('Tahun angkatan Non-Paket harus antara 1985 dan 2026.')
+    if package_type == 'STUDENT_PACK' and not 2023 <= cohort_year <= 2026:
+        raise ValueError('Paket Mahasiswa Aktif hanya tersedia untuk angkatan 2023 sampai 2026.')
 
     tshirt_sizes = []
     if package_type != 'TICKET_ONLY':
@@ -583,6 +601,14 @@ def checkout_mahasiswa(request):
         )
         return redirect('index')
 
+    cohort_year = _get_sso_student_cohort_year(request.user)
+    if cohort_year is None:
+        messages.error(
+            request,
+            'Angkatan tidak dapat diambil dari data SSO. Pastikan NPM SSO Anda valid.',
+        )
+        return redirect('index')
+
     existing_student_tickets = Ticket.objects.filter(
         transaction__user=request.user,
         package_type='STUDENT_PACK',
@@ -598,13 +624,21 @@ def checkout_mahasiswa(request):
 
     if request.method == 'POST':
         try:
-            _create_checkout_transaction(request, 'STUDENT_PACK')
+            _create_checkout_transaction(
+                request,
+                'STUDENT_PACK',
+                cohort_year_override=cohort_year,
+            )
             messages.success(request, 'Pesanan tersimpan. Silakan lanjutkan pembayaran melalui halaman History.')
             return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
 
-    return render(request, 'registration/checkout-mahasiswa.html')
+    return render(
+        request,
+        'registration/checkout-mahasiswa.html',
+        {'cohort_year': cohort_year},
+    )
 
 
 @login_required

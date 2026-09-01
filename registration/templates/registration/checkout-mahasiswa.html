@@ -43,14 +43,9 @@
       
       <div class="checkout-field">
         <label for="id_cohort_year">
-          Angkatan
+          Angkatan (dari SSO)
         </label>
-        <select id="id_cohort_year" name="cohort_year">
-          <option>2023</option>
-          <option>2024</option>
-          <option>2025</option>
-          <option>2026</option>
-        </select>
+        <input id="id_cohort_year" name="cohort_year" readonly required type="text" value="{{ cohort_year }}"/>
       </div>
       
       <div class="checkout-field">
