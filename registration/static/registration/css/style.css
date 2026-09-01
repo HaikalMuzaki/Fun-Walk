@@ -1734,22 +1734,3 @@ body {
   font-family: inherit;
   box-sizing: border-box;
 }
-
-.package-item {
-  position: relative;
-}
-
-
-
-/* Memberi jarak aman pada konten di dalam kartu agar tidak tertutup label yang melayang */
-.package-info {
-  min-height: 8.2rem;
-  position: relative;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  padding: 0.75rem;
-  border-radius: 0.7rem;
-  background: #ffed78;
-  margin-top: 0; 
-}
