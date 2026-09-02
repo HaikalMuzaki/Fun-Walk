@@ -139,6 +139,11 @@ def export_selected_transactions_to_csv(modeladmin, request, queryset):
     )
     return _spreadsheet_response(filename, csv_content)
 
+class TransactionInline(admin.TabularInline):
+    model = Transaction
+    fields = ('transaction_id', 'status', 'total_amount', 'created_at')
+    readonly_fields = fields
+    extra = 0 # Mencegah admin menambahkan transaksi kosong secara manual
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -147,6 +152,7 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ('Info Tambahan Fun Walk', {'fields': ('user_type', 'npm', 'address')}),
     )
+    inlines = [TransactionInline]
 
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))

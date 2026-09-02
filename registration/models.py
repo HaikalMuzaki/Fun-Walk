@@ -5,15 +5,19 @@ import uuid
 # --- 1. AKUN USER (Bisa SSO Mahasiswa Aktif atau Email Alumni) ---
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = [
+        ('ADMIN', 'Admin'),
         ('STUDENT', 'Mahasiswa Aktif'),
-        ('ALUMNI', 'Alumni'),
+        ('ALUMNI', 'Mahasiswa/Alumni'), # Mengakomodasi login non-SSO
     ]
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='ALUMNI')
     npm = models.CharField(max_length=20, blank=True, null=True, verbose_name="NPM (Khusus Mahasiswa)")
     address = models.TextField(blank=True, null=True, verbose_name="Alamat Pengiriman/Domisili")
     
-    # Catatan SSO: Nanti pas integrasi SSO UI, sistem akan nge-bind akun ke sini via NPM.
-    # Alumni login normal pakai Email/Username.
+    def save(self, *args, **kwargs):
+        # Intervensi otomatis: Jika user adalah superuser, paksa user_type menjadi ADMIN
+        if self.is_superuser:
+            self.user_type = 'ADMIN'
+        super().save(*args, **kwargs)
 
 # --- 2. TRANSAKSI (Keranjang Belanja) ---
 class Transaction(models.Model):
