@@ -1735,6 +1735,12 @@ body {
   box-sizing: border-box;
 }
 
+.detail-highlight-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
 .package-features {
   margin: 0;
   padding-left: 1rem;
