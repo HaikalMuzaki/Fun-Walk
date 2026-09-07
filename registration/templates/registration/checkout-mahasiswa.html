@@ -10,8 +10,7 @@
       Paket Mahasiswa Aktif
     </h1>
     
-    <!-- data-unit-price diset 175000 biar logic js bawaan temen lu nangkep 175rb -->
-    <form method="POST" action="" data-unit-price="250000" data-discounted-unit-price="175000" id="registration-form">
+    <form method="POST" action="" data-unit-price="125000" id="registration-form">
       {% csrf_token %}
       {% if messages %}
       <div class="form-errors">
@@ -96,19 +95,19 @@
       
       <div class="checkout-summary" id="price-summary">
         <div class="checkout-summary-row">
-          <span>Harga Normal</span>
-          <strong id="base-price" style="text-decoration: line-through; color: #888;">Rp275.000</strong>
-        </div>
-        <div class="checkout-summary-row checkout-summary-row--discount">
-          <span>SSO Special Offer</span>
-          <strong id="discount-price">-Rp100.000</strong>
+          <span>Paket Mahasiswa Aktif</span>
+          <strong id="base-price">Rp125.000</strong>
         </div>
       </div>
       
       <div class="checkout-total">
         <span>Total Harga</span>
-        <strong id="total-price">Rp150.000</strong>
+        <strong id="total-price">Rp125.000</strong>
       </div>
+      <label class="terms-consent">
+        <input name="accept_terms" required type="checkbox"/>
+        <span>Saya menyetujui syarat dan ketentuan Fun Walk, termasuk membawa KTM atau bukti mahasiswa aktif saat pengambilan paket.</span>
+      </label>
       
       <button class="payment-button" type="submit">
        Simpan Pesanan

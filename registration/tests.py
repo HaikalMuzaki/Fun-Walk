@@ -284,7 +284,8 @@ class CheckoutPersistenceTests(TestCase):
         response = self.client.post(
             '/checkout/alumni/',
             {
-                'full_name': 'Bilqis Nisrina',
+                'first_name': 'Bilqis',
+                'last_name': 'Nisrina',
                 'whatsapp_number': '081234567890',
                 'cohort_year': '2022',
                 'degree_level': 'S1',
@@ -292,6 +293,7 @@ class CheckoutPersistenceTests(TestCase):
                 'ticket_quantity': '2',
                 'shirt_size_1': 'M',
                 'shirt_size_2': 'L',
+                'accept_terms': 'on',
             },
             HTTP_HOST='127.0.0.1',
         )
@@ -305,6 +307,7 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.degree_level, 'S1')
         self.assertEqual(transaction.study_program, 'ILMU_KOMPUTER')
         self.assertEqual(transaction.tickets.count(), 2)
+        self.assertEqual(transaction.total_amount, Decimal('450000'))
         mocked_initiate_payment.assert_not_called()
 
     def test_checkout_mahasiswa_uses_cohort_year_from_sso_npm(self):
@@ -328,6 +331,7 @@ class CheckoutPersistenceTests(TestCase):
                 'study_program': 'ILMU_KOMPUTER',
                 'ticket_quantity': '1',
                 'shirt_size_1': 'M',
+                'accept_terms': 'on',
             },
             HTTP_HOST='127.0.0.1',
         )
@@ -335,6 +339,34 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         transaction = Transaction.objects.get(user=user)
         self.assertEqual(transaction.cohort_year, 2024)
+        self.assertEqual(transaction.total_amount, Decimal('125000'))
+
+    def test_checkout_requires_terms_acceptance(self):
+        user = CustomUser.objects.create_user(
+            username='terms@gmail.com',
+            email='terms@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/tiket-saja/',
+            {
+                'first_name': 'Peserta',
+                'last_name': 'Basic',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2022',
+                'degree_level': 'S1',
+                'study_program': 'ILMU_KOMPUTER',
+                'ticket_quantity': '1',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'wajib menyetujui syarat dan ketentuan')
+        self.assertFalse(Transaction.objects.filter(user=user).exists())
 
     def test_history_expires_pending_payment_after_six_minutes(self):
         user = CustomUser.objects.create_user(

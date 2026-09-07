@@ -1734,3 +1734,44 @@ body {
   font-family: inherit;
   box-sizing: border-box;
 }
+
+.terms-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  color: #4d4d4d;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.terms-consent input {
+  width: auto;
+  margin-top: 0.2rem;
+  accent-color: #c99c00;
+}
+
+.terms-section {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto 3rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid #ead99a;
+  border-radius: 0.75rem;
+  background: #fffbed;
+}
+
+.terms-section h2 {
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.terms-section ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.terms-section li {
+  margin: 0.45rem 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}

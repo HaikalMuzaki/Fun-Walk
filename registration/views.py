@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 PACKAGE_DETAILS = {
     'ALUMNI_PACK': {
-        'label': 'Paket Umum',
+        'label': 'Paket Premium',
         'template': 'registration/checkout-alumni.html',
     },
     'STUDENT_PACK': {
@@ -49,7 +49,7 @@ PACKAGE_DETAILS = {
         'template': 'registration/checkout-mahasiswa.html',
     },
     'TICKET_ONLY': {
-        'label': 'Non-Paket',
+        'label': 'Paket Basic',
         'template': 'registration/checkout-non-paket.html',
     },
 }
@@ -402,6 +402,9 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         raise ValueError('Jumlah tiket tidak valid.')
     quantity = max(1, min(5, quantity))
 
+    if request.POST.get('accept_terms') != 'on':
+        raise ValueError('Anda wajib menyetujui syarat dan ketentuan peserta.')
+
     if not first_name:
         raise ValueError('First name wajib diisi.')
     if not last_name:
@@ -435,10 +438,10 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         total_amount = Decimal('0')
         for index in range(quantity):
             if package_type == 'ALUMNI_PACK':
-                price = Decimal('250000')
+                price = Decimal('225000')
                 tshirt_size = tshirt_sizes[index]
             elif package_type == 'STUDENT_PACK':
-                price = Decimal('150000') if index == 0 else Decimal('250000')
+                price = Decimal('125000')
                 tshirt_size = tshirt_sizes[index]
             else:
                 price = Decimal('50000')

@@ -75,7 +75,7 @@
             :
           </span>
           <span class="detail-value">
-            05.30 WIB &nbsp; &ndash; &nbsp; Selesai
+            05.30 &ndash; 11.00 WIB
           </span>
         </div>
         <div class="detail-item">
@@ -96,7 +96,7 @@
             Peserta
           </span>
           <strong>
-            Mahasiswa &amp; Alumni Fasilkom UI
+            Civitas Akademika Fasilkom UI dan keluarga
           </strong>
         </div>
         <div class="detail-highlight">
@@ -104,7 +104,7 @@
             Registrasi Ulang
           </span>
           <strong>
-            Dibuka pada pukul 05.00 WIB. 
+            Hadir paling lambat pukul 05.00 WIB.
           </strong>
         </div>
       </div>
@@ -115,15 +115,13 @@
         Kategori Paket
       </h2>
       <div class="package-list">
-        <!-- PAKET UMUM (Eks Alumni) -->
         <div class="package-item">
           <div class="package-info">
-            <h3 class="package-name">Paket Umum</h3>
-            <p class="package-description">Dapat dibeli oleh seluruh civitas akademika Fasilkom UI.</p>
-            <p class="package-description">Paket sudah termasuk Kaos dan Merchandise.</p>
-            <strong class="package-price">Rp250.000</strong>
+            <h3 class="package-name">Paket Premium</h3>
+            <p class="package-description">Kaos eksklusif, fun kit, gelang peserta, pisang, air mineral, tes kesehatan, dan voucher.</p>
+            <strong class="package-price">Rp225.000</strong>
           </div>
-          <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Umum</a>
+          <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>
         </div>
 
         <!-- PAKET MAHASISWA -->
@@ -133,8 +131,8 @@
           <span class="package-badge">SSO UI Only</span>
           <div class="package-info">
             <h3 class="package-name">Paket Mahasiswa aktif</h3>
-            <p class="package-description">Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.</p>
-            <p class="package-description">Paket sudah termasuk Kaos.</p>
+            <p class="package-description">Untuk mahasiswa aktif S1, S2, dan S3. Wajib menunjukkan KTM atau bukti mahasiswa aktif saat pengambilan paket.</p>
+            <p class="package-description">Termasuk kaos, gelang peserta, pisang, air mineral, dan voucher.</p>
             <div class="package-price-group">
               <strong class="package-price" style="color: #666;">Telah Diklaim</strong>
             </div>
@@ -151,27 +149,36 @@
             <p class="package-description">Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.</p>
             <p class="package-description">Paket sudah termasuk Kaos.</p>
             <div class="package-price-group">
-              <span class="package-price-original">Rp250.000</span>
-              <strong class="package-price">Rp150.000</strong>
+              <strong class="package-price">Rp125.000</strong>
             </div>
-            <p class="package-note">*Diskon hanya untuk 1 akun mahasiswa</p>
+            <p class="package-note">*Khusus mahasiswa aktif</p>
           </div>
           <a class="package-button" href="{% url 'checkout_mahasiswa' %}">Beli Paket Mahasiswa Aktif</a>
         </div>
         {% endif %}
 
-        <!-- NON-PAKET -->
         <div class="package-item">
           <div class="package-info">
-            <h3 class="package-name">Non-Paket (hanya tiket)</h3>
-            <p class="package-description">Dapat dibeli oleh seluruh civitas akademika Fasilkom UI.</p>
-            <p class="package-description">Tidak termasuk kaos dan merchandise.</p>
+            <h3 class="package-name">Paket Basic</h3>
+            <p class="package-description">Gelang peserta, pisang dan air mineral, tes kesehatan, serta voucher.</p>
             <strong class="package-price">Rp50.000</strong>
           </div>
-          <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Non-Paket</a>
+          <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Paket Basic</a>
         </div>
       </div>
     </article>
+  </section>
+
+  <section class="terms-section" aria-labelledby="terms-title">
+    <h2 id="terms-title">Syarat dan Ketentuan Peserta</h2>
+    <ul>
+      <li>Peserta wajib mendaftar melalui dn.cs.ui.ac.id dengan data yang benar, akurat, dan lengkap.</li>
+      <li>Data peserta dan ukuran kaos tidak dapat diubah setelah pembayaran. Tiket tidak dapat dipindahtangankan maupun direfund.</li>
+      <li>Pengambilan fun kit wajib membawa e-ticket dan kartu identitas yang sesuai. Jadwal serta lokasi akan diumumkan melalui kanal resmi.</li>
+      <li>Peserta harus dalam kondisi sehat, mengikuti rute serta arahan panitia, memakai gelang peserta saat acara, dan bertanggung jawab atas barang pribadi.</li>
+      <li>Dilarang membawa kendaraan, sepeda atau alat beroda, hewan peliharaan, penutup wajah penuh, perlengkapan berbahaya, atau perangkat dengan volume mengganggu.</li>
+      <li>Panitia dapat menggunakan dokumentasi acara dan berhak membatalkan acara dalam keadaan kahar atau force majeure.</li>
+    </ul>
   </section>
 </main>
 {% endblock %}
