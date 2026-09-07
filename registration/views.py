@@ -89,7 +89,6 @@ STUDY_PROGRAM_CHOICES = {
     'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
 }
 VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', '3XL'}
-VALID_GENDERS = {'MALE', 'FEMALE'}
 
 
 def _format_rupiah(amount):
@@ -145,13 +144,6 @@ def _parse_cohort_year(value):
         return int(normalized_value)
     except (TypeError, ValueError):
         raise ValueError('Tahun angkatan tidak valid.')
-
-
-def _parse_gender(value):
-    normalized_value = (value or '').strip().upper()
-    if normalized_value not in VALID_GENDERS:
-        raise ValueError('Jenis kelamin wajib dipilih.')
-    return normalized_value
 
 
 def _parse_degree_level(value):
@@ -396,7 +388,6 @@ def _expire_transaction_if_overdue(transaction_obj, now=None):
 def _create_checkout_transaction(request, package_type, *, cohort_year_override=None):
     first_name = (request.POST.get('first_name') or '').strip()
     last_name = (request.POST.get('last_name') or '').strip()
-    gender = _parse_gender(request.POST.get('gender'))
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
     cohort_year = (
         cohort_year_override
@@ -435,7 +426,6 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
             user=request.user,
             status='PENDING_PAYMENT',
             whatsapp_number=whatsapp_number,
-            gender=gender,
             cohort_year=cohort_year,
             degree_level=degree_level,
             study_program=study_program,

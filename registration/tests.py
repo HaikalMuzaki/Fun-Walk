@@ -286,7 +286,6 @@ class CheckoutPersistenceTests(TestCase):
             {
                 'first_name': 'Bilqis',
                 'last_name': 'Nisrina',
-                'gender': 'FEMALE',
                 'whatsapp_number': '081234567890',
                 'cohort_year': '2022',
                 'degree_level': 'S1',
@@ -305,7 +304,6 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.status, 'PENDING_PAYMENT')
         self.assertEqual(transaction.whatsapp_number, '081234567890')
         self.assertEqual(transaction.cohort_year, 2022)
-        self.assertEqual(transaction.gender, 'FEMALE')
         self.assertEqual(transaction.degree_level, 'S1')
         self.assertEqual(transaction.study_program, 'ILMU_KOMPUTER')
         self.assertEqual(transaction.tickets.count(), 2)
@@ -327,7 +325,6 @@ class CheckoutPersistenceTests(TestCase):
             {
                 'first_name': 'Mahasiswa',
                 'last_name': 'UI',
-                'gender': 'MALE',
                 'whatsapp_number': '081234567890',
                 'cohort_year': '2023',
                 'degree_level': 'S1',
@@ -358,7 +355,6 @@ class CheckoutPersistenceTests(TestCase):
             {
                 'first_name': 'Peserta',
                 'last_name': 'Basic',
-                'gender': 'MALE',
                 'whatsapp_number': '081234567890',
                 'cohort_year': '2022',
                 'degree_level': 'S1',
