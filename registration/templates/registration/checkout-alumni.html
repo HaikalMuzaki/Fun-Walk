@@ -293,10 +293,10 @@
      </strong>
     </div>
     <label class="terms-consent">
-     <input name="accept_terms" required="" type="checkbox"/>
-     <span>Saya menyetujui syarat dan ketentuan Fun Walk, termasuk data tidak dapat diubah setelah pembayaran, tiket tidak dapat dipindahtangankan atau direfund, serta ketentuan kesehatan dan keselamatan acara.</span>
+     <input disabled="" name="accept_terms" required="" type="checkbox"/>
+     <span>Saya telah membaca dan menyetujui <button class="terms-link" data-open-terms="true" type="button">Syarat dan Ketentuan</button>.</span>
     </label>
-    <button class="payment-button" type="submit">
+    <button class="payment-button" data-terms-submit="true" disabled="" type="submit">
        Simpan Pesanan
      </button>
     </form>
@@ -307,7 +307,7 @@
     Fasilkom UI
    </span>
   </footer>
-  <script src="{% static 'registration/js/app.js' %}?v=20260829-2">
+  <script src="{% static 'registration/js/app.js' %}?v=20260907-terms">
   </script>
  </body>
 </html>

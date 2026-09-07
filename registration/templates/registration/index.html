@@ -118,7 +118,13 @@
         <div class="package-item">
           <div class="package-info">
             <h3 class="package-name">Paket Premium</h3>
-            <p class="package-description">Kaos eksklusif, fun kit, gelang peserta, pisang, air mineral, tes kesehatan, dan voucher.</p>
+            <ul class="package-features">
+              <li>Kaos eksklusif Fun Walk</li>
+              <li>Fun kit berisi goodie bag, voucher, dan produk sponsor*</li>
+              <li>Gelang peserta</li>
+              <li>Pisang dan air mineral</li>
+              <li>Tes kesehatan</li>
+            </ul>
             <strong class="package-price">Rp225.000</strong>
           </div>
           <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>
@@ -131,8 +137,13 @@
           <span class="package-badge">SSO UI Only</span>
           <div class="package-info">
             <h3 class="package-name">Paket Mahasiswa aktif</h3>
-            <p class="package-description">Untuk mahasiswa aktif S1, S2, dan S3. Wajib menunjukkan KTM atau bukti mahasiswa aktif saat pengambilan paket.</p>
-            <p class="package-description">Termasuk kaos, gelang peserta, pisang, air mineral, dan voucher.</p>
+            <ul class="package-features">
+              <li>Untuk mahasiswa aktif S1, S2, dan S3</li>
+              <li>Kaos eksklusif Fun Walk</li>
+              <li>Gelang peserta</li>
+              <li>Pisang dan air mineral</li>
+              <li>Voucher permainan, hiburan, dan photo booth</li>
+            </ul>
             <div class="package-price-group">
               <strong class="package-price" style="color: #666;">Telah Diklaim</strong>
             </div>
@@ -146,8 +157,13 @@
           <span class="package-badge">SSO UI Only</span>
           <div class="package-info">
             <h3 class="package-name">Paket Mahasiswa aktif</h3>
-            <p class="package-description">Hanya dapat dibeli oleh Mahasiswa aktif Fasilkom UI mulai dari angkatan 2023 hingga 2026.</p>
-            <p class="package-description">Paket sudah termasuk Kaos.</p>
+            <ul class="package-features">
+              <li>Untuk mahasiswa aktif S1, S2, dan S3</li>
+              <li>Kaos eksklusif Fun Walk</li>
+              <li>Gelang peserta</li>
+              <li>Pisang dan air mineral</li>
+              <li>Voucher permainan, hiburan, dan photo booth</li>
+            </ul>
             <div class="package-price-group">
               <strong class="package-price">Rp125.000</strong>
             </div>
@@ -160,7 +176,12 @@
         <div class="package-item">
           <div class="package-info">
             <h3 class="package-name">Paket Basic</h3>
-            <p class="package-description">Gelang peserta, pisang dan air mineral, tes kesehatan, serta voucher.</p>
+            <ul class="package-features">
+              <li>Gelang peserta</li>
+              <li>Pisang dan air mineral</li>
+              <li>Tes kesehatan</li>
+              <li>Voucher permainan, hiburan, dan photo booth</li>
+            </ul>
             <strong class="package-price">Rp50.000</strong>
           </div>
           <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Paket Basic</a>
@@ -179,6 +200,7 @@
       <li>Dilarang membawa kendaraan, sepeda atau alat beroda, hewan peliharaan, penutup wajah penuh, perlengkapan berbahaya, atau perangkat dengan volume mengganggu.</li>
       <li>Panitia dapat menggunakan dokumentasi acara dan berhak membatalkan acara dalam keadaan kahar atau force majeure.</li>
     </ul>
+    <p class="terms-footnote">*Jenis dan jumlah voucher serta produk sponsor menyesuaikan ketersediaan.</p>
   </section>
 </main>
 {% endblock %}

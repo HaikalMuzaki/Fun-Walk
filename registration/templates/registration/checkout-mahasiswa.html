@@ -105,11 +105,11 @@
         <strong id="total-price">Rp125.000</strong>
       </div>
       <label class="terms-consent">
-        <input name="accept_terms" required type="checkbox"/>
-        <span>Saya menyetujui syarat dan ketentuan Fun Walk, termasuk membawa KTM atau bukti mahasiswa aktif saat pengambilan paket.</span>
+        <input disabled name="accept_terms" required type="checkbox"/>
+        <span>Saya telah membaca dan menyetujui <button class="terms-link" data-open-terms="true" type="button">Syarat dan Ketentuan</button>.</span>
       </label>
       
-      <button class="payment-button" type="submit">
+      <button class="payment-button" data-terms-submit="true" disabled type="submit">
        Simpan Pesanan
       </button>
     </form>
