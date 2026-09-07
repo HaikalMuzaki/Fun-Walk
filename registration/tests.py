@@ -344,6 +344,38 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.cohort_year, 2024)
         self.assertEqual(transaction.total_amount, Decimal('125000'))
 
+    def test_checkout_mahasiswa_rejects_more_than_one_ticket(self):
+        user = CustomUser.objects.create_user(
+            username='2400000003',
+            email='mahasiswa-multi@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2400000003',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/mahasiswa/',
+            {
+                'first_name': 'Mahasiswa',
+                'last_name': 'UI',
+                'gender': 'MALE',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2024',
+                'degree_level': 'S1',
+                'study_program': 'ILMU_KOMPUTER',
+                'ticket_quantity': '2',
+                'shirt_size_1': 'M',
+                'shirt_size_2': 'L',
+                'accept_terms': 'on',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'hanya dapat dibeli untuk 1 tiket')
+        self.assertFalse(Transaction.objects.filter(user=user).exists())
+
     def test_checkout_requires_terms_acceptance(self):
         user = CustomUser.objects.create_user(
             username='terms@gmail.com',

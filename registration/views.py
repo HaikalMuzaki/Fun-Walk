@@ -414,6 +414,8 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         raise ValueError('Jumlah tiket tidak valid.')
     if not 1 <= quantity <= 5:
         raise ValueError('Jumlah tiket harus antara 1 dan 5.')
+    if package_type == 'STUDENT_PACK' and quantity != 1:
+        raise ValueError('Paket Mahasiswa Aktif hanya dapat dibeli untuk 1 tiket.')
 
     if request.POST.get('accept_terms') != 'on':
         raise ValueError('Anda wajib menyetujui syarat dan ketentuan peserta.')
@@ -634,6 +636,18 @@ def checkout_mahasiswa(request):
             'Angkatan tidak dapat diambil dari data SSO. Pastikan NPM SSO Anda valid.',
         )
         return redirect('index')
+
+    existing_student_tickets = Ticket.objects.filter(
+        transaction__user=request.user,
+        package_type='STUDENT_PACK',
+    ).select_related('transaction')
+    for ticket in existing_student_tickets:
+        if ticket.transaction.status in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
+            messages.warning(request, 'Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di History.')
+            return redirect('history')
+        if ticket.transaction.status == 'PAID':
+            messages.error(request, '1 SSO UI only untuk 1 tiket Paket Mahasiswa Aktif.')
+            return redirect('index')
 
     if request.method == 'POST':
         try:

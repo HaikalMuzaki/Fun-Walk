@@ -10,7 +10,7 @@
       Paket Mahasiswa Aktif
     </h1>
     
-    <form method="POST" action="" data-unit-price="125000" id="registration-form">
+    <form method="POST" action="" data-unit-price="225000" data-discounted-unit-price="125000" id="registration-form">
       {% csrf_token %}
       {% if messages %}
       <div class="form-errors">
@@ -80,17 +80,7 @@
         </select>
       </div>
       
-      <div class="checkout-field">
-        <label for="id_ticket_quantity">Jumlah Tiket</label>
-        <select id="id_ticket_quantity" name="ticket_quantity" required>
-          <option disabled selected value="">Pilih jumlah tiket</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-        </select>
-      </div>
+      <input id="id_ticket_quantity" name="ticket_quantity" type="hidden" value="1"/>
       
       <div aria-label="Panduan ukuran baju" class="size-chart">
       <img alt="Panduan ukuran baju" src="/static/registration/assets/ukuranbaju.jpeg?v=20260829"/>
@@ -114,8 +104,12 @@
       
       <div class="checkout-summary" id="price-summary">
         <div class="checkout-summary-row">
-          <span>Paket Mahasiswa Aktif</span>
-          <strong id="base-price">Rp125.000</strong>
+          <span>Harga Normal</span>
+          <strong id="base-price" style="color: #888; text-decoration: line-through;">Rp225.000</strong>
+        </div>
+        <div class="checkout-summary-row checkout-summary-row--discount">
+          <span>Discount</span>
+          <strong id="discount-price">-Rp100.000</strong>
         </div>
       </div>
       
@@ -123,6 +117,7 @@
         <span>Total Harga</span>
         <strong id="total-price">Rp125.000</strong>
       </div>
+      <p class="package-note">*1 SSO UI only untuk 1 tiket</p>
       <label class="terms-consent">
         <input disabled name="accept_terms" required type="checkbox"/>
         <span>Saya telah membaca dan menyetujui <button class="terms-link" data-open-terms="true" type="button">Syarat dan Ketentuan</button>.</span>
