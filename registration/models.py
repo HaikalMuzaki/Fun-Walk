@@ -21,6 +21,10 @@ class CustomUser(AbstractUser):
 
 # --- 2. TRANSAKSI (Keranjang Belanja) ---
 class Transaction(models.Model):
+    GENDER_CHOICES = [
+        ('MALE', 'Laki-laki'),
+        ('FEMALE', 'Perempuan'),
+    ]
     DEGREE_LEVEL_CHOICES = [
         ('S1', 'S1'),
         ('S2', 'S2'),
@@ -45,6 +49,13 @@ class Transaction(models.Model):
     transaction_id = models.CharField(max_length=50, unique=True, editable=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING_PAYMENT')
     whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name="Nomor WhatsApp")
+    gender = models.CharField(
+        max_length=10,
+        choices=GENDER_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="Jenis Kelamin",
+    )
     cohort_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Tahun Angkatan")
     degree_level = models.CharField(
         max_length=2,

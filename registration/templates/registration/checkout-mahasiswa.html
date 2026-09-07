@@ -32,6 +32,14 @@
         </label>
         <input id="id_last_name" name="last_name" required="" type="text"/>
       </div>
+      <div class="checkout-field">
+        <label for="id_gender">Jenis Kelamin</label>
+        <select id="id_gender" name="gender" required>
+          <option disabled selected value="">Pilih jenis kelamin</option>
+          <option value="MALE">Laki-laki</option>
+          <option value="FEMALE">Perempuan</option>
+        </select>
+      </div>
       
       <div class="checkout-field">
         <label for="id_whatsapp_number">
@@ -70,8 +78,16 @@
         </select>
       </div>
       
-      <!-- Input jumlah tiket disembunyikan dan di-lock ke value 1 -->
-      <input type="hidden" id="id_ticket_quantity" name="ticket_quantity" value="1">
+      <div class="checkout-field">
+        <label for="id_ticket_quantity">Jumlah Tiket</label>
+        <select id="id_ticket_quantity" name="ticket_quantity">
+          <option selected value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
       
       <div aria-label="Panduan ukuran baju" class="size-chart">
       <img alt="Panduan ukuran baju" src="/static/registration/assets/ukuranbaju.jpeg?v=20260829"/>

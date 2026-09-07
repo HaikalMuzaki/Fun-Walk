@@ -89,6 +89,7 @@ STUDY_PROGRAM_CHOICES = {
     'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
 }
 VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', '3XL'}
+VALID_GENDERS = {'MALE', 'FEMALE'}
 
 
 def _format_rupiah(amount):
@@ -106,7 +107,7 @@ def _get_sso_student_cohort_year(user):
         return None
 
     cohort_year = 2000 + int(npm[:2])
-    if 2023 <= cohort_year <= 2026:
+    if 2000 <= cohort_year <= timezone.localdate().year:
         return cohort_year
     return None
 
@@ -144,6 +145,13 @@ def _parse_cohort_year(value):
         return int(normalized_value)
     except (TypeError, ValueError):
         raise ValueError('Tahun angkatan tidak valid.')
+
+
+def _parse_gender(value):
+    normalized_value = (value or '').strip().upper()
+    if normalized_value not in VALID_GENDERS:
+        raise ValueError('Jenis kelamin wajib dipilih.')
+    return normalized_value
 
 
 def _parse_degree_level(value):
@@ -388,6 +396,7 @@ def _expire_transaction_if_overdue(transaction_obj, now=None):
 def _create_checkout_transaction(request, package_type, *, cohort_year_override=None):
     first_name = (request.POST.get('first_name') or '').strip()
     last_name = (request.POST.get('last_name') or '').strip()
+    gender = _parse_gender(request.POST.get('gender'))
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
     cohort_year = (
         cohort_year_override
@@ -413,9 +422,6 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         raise ValueError('Tahun angkatan wajib diisi.')
     if package_type == 'TICKET_ONLY' and not 1985 <= cohort_year <= 2026:
         raise ValueError('Tahun angkatan Non-Paket harus antara 1985 dan 2026.')
-    if package_type == 'STUDENT_PACK' and not 2023 <= cohort_year <= 2026:
-        raise ValueError('Paket Mahasiswa Aktif hanya tersedia untuk angkatan 2023 sampai 2026.')
-
     tshirt_sizes = []
     if package_type != 'TICKET_ONLY':
         for index in range(1, quantity + 1):
@@ -429,6 +435,7 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
             user=request.user,
             status='PENDING_PAYMENT',
             whatsapp_number=whatsapp_number,
+            gender=gender,
             cohort_year=cohort_year,
             degree_level=degree_level,
             study_program=study_program,
@@ -465,20 +472,7 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
 
 
 def index(request):
-    has_bought_student_pack = False
-
-    if request.user.is_authenticated and _is_student_sso_user(request.user):
-        has_bought_student_pack = Ticket.objects.filter(
-            transaction__user=request.user,
-            transaction__status='PAID',
-            package_type='STUDENT_PACK',
-        ).exists()
-
-    return render(
-        request,
-        'registration/index.html',
-        {'has_bought_student_pack': has_bought_student_pack},
-    )
+    return render(request, 'registration/index.html')
 
 
 def _get_safe_next_url(request):
@@ -636,19 +630,6 @@ def checkout_mahasiswa(request):
             'Angkatan tidak dapat diambil dari data SSO. Pastikan NPM SSO Anda valid.',
         )
         return redirect('index')
-
-    existing_student_tickets = Ticket.objects.filter(
-        transaction__user=request.user,
-        package_type='STUDENT_PACK',
-    ).select_related('transaction')
-
-    for ticket in existing_student_tickets:
-        if ticket.transaction.status in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
-            messages.warning(request, 'Silakan selesaikan pembayaran tiket mahasiswa Anda sebelumnya di sini.')
-            return redirect('history')
-        if ticket.transaction.status == 'PAID':
-            messages.error(request, 'Anda telah menggunakan special offer ini.')
-            return redirect('index')
 
     if request.method == 'POST':
         try:

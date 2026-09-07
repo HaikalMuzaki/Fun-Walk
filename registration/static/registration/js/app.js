@@ -200,9 +200,10 @@
           <div class="terms-modal__body" tabindex="0">
             <h3>Peserta dan Perlengkapan</h3>
             <ul>
-              <li>Peserta adalah civitas akademika Fasilkom UI, meliputi mahasiswa, alumni, dosen, tenaga kependidikan, dan keluarga. Tidak ada batas usia peserta.</li>
+              <li>Peserta merupakan Civitas Akademika, yaitu mahasiswa, alumni, dosen, tenaga kependidikan, dan keluarga. Tidak ada syarat umur peserta.</li>
               <li>Peserta wajib mendaftar resmi melalui dn.cs.ui.ac.id dan mengisi formulir dengan data yang benar, akurat, dan lengkap.</li>
-              <li>Data peserta, termasuk nama dan ukuran kaos, tidak dapat diubah setelah pembayaran. Panitia tidak bertanggung jawab atas kesalahan pengisian data.</li>
+              <li>Data peserta, seperti nama, jenis kelamin, ukuran jersey, dan lain-lain tidak dapat diubah atau diganti setelah pembayaran formulir registrasi.</li>
+              <li>Panitia tidak bertanggung jawab atas segala kerugian yang ditimbulkan akibat kesalahan pengisian data peserta dan tidak melayani penggantian ukuran jersey pada saat pembagian fun kit.</li>
               <li>Tiket tidak dapat dipindahtangankan dan tidak dapat direfund, baik sebagian maupun seluruhnya.</li>
               <li>Pengambilan fun kit wajib membawa e-ticket serta kartu identitas yang sesuai. Peserta wajib memakai gelang partisipasi pada hari acara.</li>
               <li>Barang pribadi merupakan tanggung jawab peserta; kehilangan atau pencurian bukan tanggung jawab panitia.</li>
@@ -210,21 +211,29 @@
             <h3>Kesehatan dan Keselamatan</h3>
             <ul>
               <li>Peserta wajib dalam kondisi sehat jasmani dan rohani. Keselamatan selama kegiatan menjadi tanggung jawab masing-masing peserta.</li>
-              <li>Panitia menyediakan tenaga medis, dokter, P3K, ambulans, dan obat-obatan. Pada cedera, panitia memberikan pertolongan pertama serta mengantar ke rumah sakit rujukan terdekat; biaya pengobatan ditanggung peserta.</li>
+              <li>Panitia tidak bertanggung jawab atas kerugian akibat risiko kesehatan pribadi, penyakit bawaan, keterlambatan hadir, dan kelalaian peserta.</li>
+              <li>Panitia menyediakan tenaga medis, dokter, petugas pertolongan pertama, ambulans, dan obat-obatan.</li>
+              <li>Pada cedera, panitia hanya memberikan pertolongan pertama atau P3K dan mengantar ke rumah sakit rujukan terdekat. Seluruh biaya pengobatan serta perawatan ditanggung peserta.</li>
               <li>Peserta yang tidak mampu melanjutkan kegiatan wajib menepi dan menghubungi panitia atau petugas medis.</li>
             </ul>
             <h3>Aturan Pelaksanaan</h3>
             <ul>
-              <li>Fun Walk 4,0 km diselenggarakan Sabtu, 24 Oktober 2026. Titik start dan finish berada di Gedung Baru Fasilkom UI.</li>
+              <li>Titik start dan finish berada di Gedung Baru Fasilkom UI.</li>
               <li>Peserta hadir paling lambat pukul 05.00 WIB, mengikuti rute resmi, arahan panitia, menjaga ketertiban, fasilitas acara, dan kebersihan.</li>
-              <li>Dilarang membawa kendaraan, sepeda atau alat beroda, hewan peliharaan, perlengkapan berbahaya, penutup wajah penuh, atau perangkat dengan volume mengganggu.</li>
+              <li>Dilarang membawa kendaraan, sepeda, alat beroda, hewan peliharaan, kostum atau perlengkapan berisiko membahayakan, penutup wajah penuh, atau perangkat dengan volume mengganggu.</li>
               <li>Dilarang melakukan aktivitas yang menghambat kelancaran event di area start, finish, maupun rute.</li>
-              <li>Panitia atau tenaga medis berhak menghentikan peserta yang secara medis tidak dapat melanjutkan kegiatan dan dapat menolak layanan bila peserta tidak memenuhi ketentuan.</li>
+              <li>Peserta wajib berperilaku sopan, mematuhi peraturan serta arahan panitia, menjaga ketertiban dan fasilitas acara, menghormati semua pihak, serta membuang sampah pada tempat yang disediakan.</li>
+            </ul>
+            <h3>Fasilitas Acara dan Keselamatan</h3>
+            <ul>
+              <li>Panitia menyediakan pos medis, refreshment/water station, dan petugas keamanan pada titik yang ditentukan.</li>
+              <li>Panitia atau tenaga medis berhak menghentikan peserta yang dinilai secara medis tidak dapat melanjutkan kegiatan.</li>
+              <li>Panitia berhak menolak pengambilan fun kit atau layanan lainnya bila peserta tidak memenuhi ketentuan atau berada di luar waktu yang ditentukan.</li>
             </ul>
             <h3>Dokumentasi dan Pembatalan</h3>
             <ul>
               <li>Panitia berhak menggunakan foto atau video kegiatan tanpa batas waktu. Peserta dilarang membawa fotografer pribadi.</li>
-              <li>Panitia berhak membatalkan acara apabila terjadi keadaan di luar kendali atau force majeure.</li>
+              <li>Panitia berhak membatalkan acara apabila terjadi keadaan di luar kendali atau force majeure, termasuk bencana alam dan demonstrasi.</li>
             </ul>
           </div>
           <footer class="terms-modal__footer">

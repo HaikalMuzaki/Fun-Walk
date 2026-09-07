@@ -31,6 +31,7 @@ EXPORT_HEADERS = [
     'Jenjang',
     'Program Studi',
     'Nomor WhatsApp',
+    'Jenis Kelamin',
     'Nama Peserta',
     'Paket',
     'Tiket Ke',
@@ -61,6 +62,7 @@ def _build_transaction_export_rows(queryset=None):
         degree_level = transaction_obj.degree_level or '-'
         study_program = transaction_obj.get_study_program_display() or '-'
         whatsapp_number = transaction_obj.whatsapp_number or '-'
+        gender = transaction_obj.get_gender_display() or '-'
 
         if not tickets:
             rows.append([
@@ -76,6 +78,7 @@ def _build_transaction_export_rows(queryset=None):
                 degree_level,
                 study_program,
                 whatsapp_number,
+                gender,
                 '-',
                 '-',
                 '-',
@@ -99,6 +102,7 @@ def _build_transaction_export_rows(queryset=None):
                 degree_level,
                 study_program,
                 whatsapp_number,
+                gender,
                 ticket.attendee_name,
                 ticket.get_package_type_display(),
                 ticket_index,
@@ -196,7 +200,7 @@ class TransactionAdmin(admin.ModelAdmin):
             'fields': ('transaction_id', 'user', 'status', 'total_amount', 'created_at')
         }),
         ('Data Pemesan', {
-            'fields': ('whatsapp_number', 'cohort_year', 'degree_level', 'study_program')
+            'fields': ('whatsapp_number', 'gender', 'cohort_year', 'degree_level', 'study_program')
         }),
         ('Detail Pembayaran (Gateway)', {
             'fields': (
