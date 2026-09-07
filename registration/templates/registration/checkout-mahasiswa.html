@@ -59,7 +59,8 @@
         <label for="id_degree_level">
           Jenjang
         </label>
-        <select id="id_degree_level" name="degree_level">
+        <select id="id_degree_level" name="degree_level" required>
+          <option disabled selected value="">Pilih jenjang</option>
           <option value="S1">S1</option>
           <option value="S2">S2</option>
           <option value="S3">S3</option>
@@ -70,7 +71,8 @@
         <label for="id_study_program">
           Program Studi
         </label>
-        <select id="id_study_program" name="study_program">
+        <select id="id_study_program" name="study_program" required>
+          <option disabled selected value="">Pilih program studi</option>
           <option value="ILMU_KOMPUTER">Ilmu Komputer</option>
           <option value="SISTEM_INFORMASI">Sistem Informasi</option>
           <option value="KECERDASAN_ARTIFISIAL">Kecerdasan Artifisial</option>
@@ -80,8 +82,9 @@
       
       <div class="checkout-field">
         <label for="id_ticket_quantity">Jumlah Tiket</label>
-        <select id="id_ticket_quantity" name="ticket_quantity">
-          <option selected value="1">1</option>
+        <select id="id_ticket_quantity" name="ticket_quantity" required>
+          <option disabled selected value="">Pilih jumlah tiket</option>
+          <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
           <option value="4">4</option>

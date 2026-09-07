@@ -405,11 +405,15 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
     )
     degree_level = _parse_degree_level(request.POST.get('degree_level'))
     study_program = _parse_study_program(request.POST.get('study_program'))
+    quantity_value = (request.POST.get('ticket_quantity') or '').strip()
+    if not quantity_value:
+        raise ValueError('Jumlah tiket wajib dipilih.')
     try:
-        quantity = int(request.POST.get('ticket_quantity') or 1)
+        quantity = int(quantity_value)
     except (TypeError, ValueError):
         raise ValueError('Jumlah tiket tidak valid.')
-    quantity = max(1, min(5, quantity))
+    if not 1 <= quantity <= 5:
+        raise ValueError('Jumlah tiket harus antara 1 dan 5.')
 
     if request.POST.get('accept_terms') != 'on':
         raise ValueError('Anda wajib menyetujui syarat dan ketentuan peserta.')
