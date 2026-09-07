@@ -141,7 +141,7 @@
           <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>
         </div>
 
-        <div class="package-item package-item--student">
+        <div class="package-item package-item--student{% if student_package_purchased %} package-item--unavailable{% endif %}">
           <span class="package-badge">SSO UI Only</span>
           <div class="package-info">
             <h3 class="package-name">Paket Mahasiswa aktif</h3>
@@ -159,7 +159,11 @@
             </div>
             <p class="package-note">*1 SSO UI only untuk 1 tiket</p>
           </div>
-          <a class="package-button" href="{% url 'checkout_mahasiswa' %}">Beli Paket Mahasiswa Aktif</a>
+          {% if student_package_purchased %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Sudah Dipesan</span>
+          {% else %}
+            <a class="package-button" href="{% url 'checkout_mahasiswa' %}">Beli Paket Mahasiswa Aktif</a>
+          {% endif %}
         </div>
 
         <div class="package-item">

@@ -478,7 +478,19 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
 
 
 def index(request):
-    return render(request, 'registration/index.html')
+    student_package_purchased = False
+    if request.user.is_authenticated:
+        student_package_purchased = Ticket.objects.filter(
+            transaction__user=request.user,
+            transaction__status='PAID',
+            package_type='STUDENT_PACK',
+        ).exists()
+
+    return render(
+        request,
+        'registration/index.html',
+        {'student_package_purchased': student_package_purchased},
+    )
 
 
 def _get_safe_next_url(request):

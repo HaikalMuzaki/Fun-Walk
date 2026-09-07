@@ -376,6 +376,31 @@ class CheckoutPersistenceTests(TestCase):
         self.assertContains(response, 'hanya dapat dibeli untuk 1 tiket')
         self.assertFalse(Transaction.objects.filter(user=user).exists())
 
+    def test_index_disables_student_package_after_successful_purchase(self):
+        user = CustomUser.objects.create_user(
+            username='2400000004',
+            email='mahasiswa-paid@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2400000004',
+        )
+        transaction = Transaction.objects.create(user=user, status='PAID')
+        Ticket.objects.create(
+            transaction=transaction,
+            package_type='STUDENT_PACK',
+            first_name='Mahasiswa',
+            last_name='UI',
+            tshirt_size='M',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get('/', HTTP_HOST='127.0.0.1')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'package-button--disabled')
+        self.assertContains(response, 'Sudah Dipesan')
+        self.assertNotContains(response, 'href="/checkout/mahasiswa/"')
+
     def test_checkout_requires_terms_acceptance(self):
         user = CustomUser.objects.create_user(
             username='terms@gmail.com',

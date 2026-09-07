@@ -429,6 +429,21 @@ body {
   padding-top: 0; /* Ruang aman di atas agar label tidak terpotong */
 }
 
+.package-item--unavailable .package-info {
+  background: #d7d7d7;
+}
+
+.package-item--unavailable .package-badge {
+  background: #b8b8b8;
+  color: #555;
+}
+
+.package-item--unavailable .package-price,
+.package-item--unavailable .package-note,
+.package-item--unavailable .package-price-original {
+  color: #666;
+}
+
 .package-info {
   min-height: 10.5rem;
   position: relative;
@@ -538,6 +553,12 @@ body {
 .package-button:hover {
   opacity: 0.8;
   transform: translateY(-0.1rem);
+}
+
+.package-button--disabled {
+  background: #a8a8a8;
+  color: #555;
+  cursor: not-allowed;
 }
 
 .footer {
