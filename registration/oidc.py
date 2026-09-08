@@ -54,7 +54,6 @@ class FasilkomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
             return 'ALUMNI'
         if roles & student_roles:
             return 'STUDENT'
-        # Unknown roles must never receive the student-only package.
         return 'ALUMNI'
 
     def _sync_user(self, user, claims):

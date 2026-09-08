@@ -33,7 +33,6 @@ SECRET_KEY = os.environ.get(
 DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true' if DJANGO_ENV != 'production' else 'false').lower() == 'true'
 
-# Pending payments are no longer usable after this interval.
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
 
 ALLOWED_HOSTS = [
@@ -186,8 +185,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
-# Email. Development writes messages to the console; production must receive
-# SMTP credentials through its environment rather than committing them.
 _email_backend = os.environ.get(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend',
@@ -216,12 +213,9 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-# Development continues using the current CAS2 SSO UI endpoint.
 SSO_UI_URL = 'https://sso.ui.ac.id/cas2/'
 SSO_UI_FORCE_SERVICE_HTTPS = os.environ.get('SSO_UI_FORCE_SERVICE_HTTPS', 'false').lower() == 'true'
 
-# Production uses Keycloak OIDC Authorization Code with PKCE. Keycloak values must
-# be supplied through .env.prod and are intentionally not committed to this repository.
 if SSO_PROVIDER == 'keycloak':
     KEYCLOAK_URL = os.environ.get('KEYCLOAK_URL', '').rstrip('/')
     KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', '')
