@@ -570,8 +570,10 @@ body {
   width: 100%;
   flex: 0 0 auto;
   margin-top: auto;
-  padding: 2rem clamp(1rem, 6vw, 5.5rem) 0;
-  background: #10172e;
+  padding: 1.75rem clamp(1rem, 6vw, 5.5rem) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #000;
   color: #fff;
 }
 
@@ -579,12 +581,13 @@ body {
   width: 100%;
   max-width: 74rem;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1.45fr 1fr;
-  gap: clamp(1.5rem, 6vw, 5rem);
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(2rem, 8vw, 6rem);
 }
 
 .footer-section {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -607,41 +610,59 @@ body {
   text-decoration: none;
 }
 
+.footer-social-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.footer-social-link svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.footer-social-link:last-child svg {
+  fill: currentColor;
+  stroke: none;
+}
+
 .footer-section a:hover {
   color: var(--yellow);
 }
 
 .footer-bottom {
   width: 100%;
-  max-width: 85rem;
+  max-width: 74rem;
   margin: 1.8rem auto 0;
-  padding: 0.75rem clamp(1rem, 6vw, 5.5rem);
+  padding: 0.75rem 0;
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  background: #090e1d;
-  color: #d9dce8;
+  justify-content: flex-start;
+  border-top: 1px solid #333;
+  color: #fff;
   font-size: 0.6rem;
 }
 
 @media (max-width: 640px) {
   .footer {
-    padding-top: 1.5rem;
+    padding-top: 1.25rem;
   }
 
   .footer-content {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.3rem 1rem;
-  }
-
-  .footer-section:last-child {
-    grid-column: 1 / -1;
+    width: max-content;
+    min-width: 100%;
+    gap: 2rem;
+    padding-bottom: 0.25rem;
   }
 
   .footer-bottom {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.25rem;
+    margin-top: 1.25rem;
+    white-space: nowrap;
   }
 }
   letter-spacing: 0.08em;
