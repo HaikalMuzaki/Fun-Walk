@@ -2,6 +2,8 @@ venv/
 *.pyc
 __pycache__/
 .env
+.env.prod
+.env.staging
 db.sqlite3
 media/
 # Local SSL Certificates

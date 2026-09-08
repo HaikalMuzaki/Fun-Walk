@@ -186,14 +186,27 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
+# Email. Development writes messages to the console; production must receive
+# SMTP credentials through its environment rather than committing them.
+_email_backend = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': _email_backend,
+        'OPTIONS': {
+            'host': os.environ.get('EMAIL_HOST'),
+            'port': int(os.environ.get('EMAIL_PORT', '587')),
+            'username': os.environ.get('EMAIL_HOST_USER'),
+            'password': os.environ.get('EMAIL_HOST_PASSWORD'),
+            'use_tls': os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true',
+            'use_ssl': os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true',
+            'timeout': int(os.environ.get('EMAIL_TIMEOUT', '10')),
+        },
     },
 }
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'dn@cs.ui.ac.id')
 
 AUTH_USER_MODEL = 'registration.CustomUser'
 
