@@ -1944,10 +1944,6 @@ body {
     --header-height: 3.75rem;
   }
 
-  body.menu-open {
-    overflow: hidden;
-  }
-
   .header {
     position: relative;
     z-index: 110;
@@ -2031,28 +2027,21 @@ body {
     font-size: 0.95rem;
   }
 
-  .auth {
-    position: fixed;
-    top: 11.5rem;
-    right: 1.5rem;
-    z-index: 121;
-    width: calc(min(80vw, 19rem) - 3rem);
-    display: none;
-    margin: 0;
-  }
-
-  .header.menu-open .auth {
+  .navbar .auth {
     display: flex;
+    width: 100%;
+    order: -1;
+    margin: 0 0 0.65rem;
   }
 
-  .auth-dropdown,
-  .auth-summary,
-  .login-link {
+  .navbar .auth-dropdown,
+  .navbar .auth-summary,
+  .navbar .login-link {
     width: 100%;
   }
 
-  .auth-summary,
-  .login-link {
+  .navbar .auth-summary,
+  .navbar .login-link {
     min-width: 0;
     padding: 0.6rem 0.75rem;
     border-radius: 0.35rem;
@@ -2064,7 +2053,7 @@ body {
     text-align: center;
   }
 
-  .auth-menu {
+  .navbar .auth-menu {
     background: #fff1a8;
   }
 
@@ -2077,6 +2066,7 @@ body {
     display: block;
     border: 0;
     background: rgb(0 0 0 / 42%);
+    pointer-events: none;
   }
 
   .menu-overlay[hidden] {
