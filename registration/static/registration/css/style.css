@@ -566,20 +566,107 @@ body {
   cursor: not-allowed;
 }
 
+/* --- UPGRADE FOOTER --- */
 .footer {
   width: 100%;
-  height: var(--footer-height);
-  flex: 0 0 var(--footer-height);
+  background: #023a6d; /* Biru gelap khas UI */
+  color: #fff;
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  font-family: "Poppins", sans-serif;
+  height: auto; /* Mematikan var(--footer-height) lama yang kaku */
+  flex: none;
+  text-transform: none; /* Mematikan uppercase bawaan lama */
+  letter-spacing: normal;
+}
+
+.footer-red-line {
+  width: 100%;
+  height: 4px;
+  background: #d8232a; /* Garis aksen merah */
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 4rem;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.brand-tagline {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #e2e8f0;
+  letter-spacing: 0.05em;
+}
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.social-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.social-item:hover {
+  opacity: 0.7;
+}
+
+.social-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12); /* Efek lingkaran transparan */
+}
+
+/* Responsivitas untuk layar kecil (HP) */
+@media (max-width: 900px) {
+  .footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 2rem;
+  }
+  .footer-socials {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+  }
 }
 
 /* Login menampilkan homepage asli sebagai background yang diburamkan. */
