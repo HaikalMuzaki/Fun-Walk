@@ -7,6 +7,7 @@ class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = [
         ('ADMIN', 'Admin'),
         ('STUDENT', 'Mahasiswa Aktif'),
+        ('LECTURER', 'Dosen'),
         ('ALUMNI', 'Mahasiswa/Alumni'), # Mengakomodasi login non-SSO
     ]
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='ALUMNI')

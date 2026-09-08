@@ -161,6 +161,8 @@
           </div>
           {% if student_package_purchased %}
             <span class="package-button package-button--disabled" aria-disabled="true">Sudah Dipesan</span>
+          {% elif student_package_restricted %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Khusus Mahasiswa Aktif</span>
           {% else %}
             <a class="package-button" href="{% url 'checkout_mahasiswa' %}">Beli Paket Mahasiswa Aktif</a>
           {% endif %}

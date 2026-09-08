@@ -24,21 +24,44 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nq-b@rbpm+4xiday4pxzooolcr%sw)+qo1a$^hi0m5_(zg+kdw'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-nq-b@rbpm+4xiday4pxzooolcr%sw)+qo1a$^hi0m5_(zg+kdw',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true' if DJANGO_ENV != 'production' else 'false').lower() == 'true'
 
 # Pending payments are no longer usable after this interval.
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
 
-ALLOWED_HOSTS = ['10.119.105.158', 'localhost', '127.0.0.1', 'dn.cs.ui.ac.id', 'leopard40.cs.ui.ac.id']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        '10.119.105.158,localhost,127.0.0.1,dn.cs.ui.ac.id,leopard40.cs.ui.ac.id',
+    ).split(',')
+    if host.strip()
+]
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [
-    'https://dn.cs.ui.ac.id',
-    'https://leopard40.cs.ui.ac.id',
+    origin.strip()
+    for origin in os.environ.get(
+        'DJANGO_CSRF_TRUSTED_ORIGINS',
+        'https://dn.cs.ui.ac.id,https://leopard40.cs.ui.ac.id',
+    ).split(',')
+    if origin.strip()
 ]
+
+if DJANGO_ENV == 'production':
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31_536_000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 # Application definition
@@ -53,6 +76,13 @@ INSTALLED_APPS = [
     'registration',
     'django_extensions',
 ]
+
+SSO_PROVIDER = os.environ.get('SSO_PROVIDER', 'cas').lower()
+if SSO_PROVIDER not in {'cas', 'keycloak'}:
+    raise ValueError('SSO_PROVIDER harus bernilai cas atau keycloak.')
+
+if SSO_PROVIDER == 'keycloak':
+    INSTALLED_APPS.append('mozilla_django_oidc')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -173,5 +203,41 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
+# Development continues using the current CAS2 SSO UI endpoint.
 SSO_UI_URL = 'https://sso.ui.ac.id/cas2/'
 SSO_UI_FORCE_SERVICE_HTTPS = os.environ.get('SSO_UI_FORCE_SERVICE_HTTPS', 'false').lower() == 'true'
+
+# Production uses Keycloak OIDC Authorization Code with PKCE. Keycloak values must
+# be supplied through .env.prod and are intentionally not committed to this repository.
+if SSO_PROVIDER == 'keycloak':
+    KEYCLOAK_URL = os.environ.get('KEYCLOAK_URL', '').rstrip('/')
+    KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', '')
+    KEYCLOAK_CLIENT_ID = os.environ.get('KEYCLOAK_CLIENT_ID', '')
+    if not all((KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID)):
+        raise ValueError('KEYCLOAK_URL, KEYCLOAK_REALM, dan KEYCLOAK_CLIENT_ID wajib diisi.')
+
+    KEYCLOAK_USERNAME_CLAIM = os.environ.get('KEYCLOAK_USERNAME_CLAIM', 'preferred_username')
+    KEYCLOAK_NPM_CLAIM = os.environ.get('KEYCLOAK_NPM_CLAIM', 'npm')
+    KEYCLOAK_ROLE_CLAIM = os.environ.get('KEYCLOAK_ROLE_CLAIM', 'roles')
+    KEYCLOAK_STUDENT_ROLES = os.environ.get('KEYCLOAK_STUDENT_ROLES', 'mahasiswa,student')
+    KEYCLOAK_LECTURER_ROLES = os.environ.get('KEYCLOAK_LECTURER_ROLES', 'dosen,lecturer')
+    KEYCLOAK_ALUMNI_ROLES = os.environ.get('KEYCLOAK_ALUMNI_ROLES', 'alumni')
+    _KEYCLOAK_OIDC_BASE = f'{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect'
+
+    OIDC_RP_CLIENT_ID = KEYCLOAK_CLIENT_ID
+    OIDC_RP_CLIENT_SECRET = os.environ.get('KEYCLOAK_CLIENT_SECRET', '')
+    OIDC_RP_SCOPES = 'openid profile email'
+    OIDC_RP_SIGN_ALGO = 'RS256'
+    OIDC_OP_AUTHORIZATION_ENDPOINT = f'{_KEYCLOAK_OIDC_BASE}/auth'
+    OIDC_OP_TOKEN_ENDPOINT = f'{_KEYCLOAK_OIDC_BASE}/token'
+    OIDC_OP_USER_ENDPOINT = f'{_KEYCLOAK_OIDC_BASE}/userinfo'
+    OIDC_OP_JWKS_ENDPOINT = f'{_KEYCLOAK_OIDC_BASE}/certs'
+    OIDC_USE_PKCE = True
+    OIDC_STORE_ACCESS_TOKEN = False
+    OIDC_STORE_ID_TOKEN = False
+    OIDC_REDIRECT_REQUIRE_HTTPS = DJANGO_ENV == 'production'
+    OIDC_REDIRECT_ALLOWED_HOSTS = ALLOWED_HOSTS
+    AUTHENTICATION_BACKENDS = (
+        'registration.oidc.FasilkomOIDCAuthenticationBackend',
+        'django.contrib.auth.backends.ModelBackend',
+    )

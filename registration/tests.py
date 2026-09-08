@@ -376,6 +376,59 @@ class CheckoutPersistenceTests(TestCase):
         self.assertContains(response, 'hanya dapat dibeli untuk 1 tiket')
         self.assertFalse(Transaction.objects.filter(user=user).exists())
 
+    def test_dosen_checkout_hides_and_does_not_require_academic_fields(self):
+        user = CustomUser.objects.create_user(
+            username='dosen@ui.ac.id',
+            email='dosen@ui.ac.id',
+            password='Strong;123',
+            user_type='LECTURER',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get('/checkout/alumni/', HTTP_HOST='127.0.0.1')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id_first_name')
+        self.assertNotContains(response, 'id_cohort_year')
+        self.assertNotContains(response, 'id_degree_level')
+        self.assertNotContains(response, 'id_study_program')
+
+        response = self.client.post(
+            '/checkout/alumni/',
+            {
+                'first_name': 'Dosen',
+                'last_name': 'Fasilkom',
+                'gender': 'FEMALE',
+                'whatsapp_number': '081234567890',
+                'ticket_quantity': '1',
+                'shirt_size_1': 'M',
+                'accept_terms': 'on',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(user=user)
+        self.assertIsNone(transaction.cohort_year)
+        self.assertEqual(transaction.degree_level, '')
+        self.assertEqual(transaction.study_program, '')
+
+    def test_dosen_and_alumni_cannot_checkout_mahasiswa(self):
+        for user_type in ('LECTURER', 'ALUMNI'):
+            with self.subTest(user_type=user_type):
+                user = CustomUser.objects.create_user(
+                    username=f'{user_type.lower()}-blocked@ui.ac.id',
+                    email=f'{user_type.lower()}-blocked@ui.ac.id',
+                    password='Strong;123',
+                    user_type=user_type,
+                )
+                self.client.force_login(user)
+
+                response = self.client.get('/checkout/mahasiswa/', follow=True, HTTP_HOST='127.0.0.1')
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'hanya dapat dibeli oleh mahasiswa aktif')
+
     def test_index_disables_student_package_after_successful_purchase(self):
         user = CustomUser.objects.create_user(
             username='2400000004',

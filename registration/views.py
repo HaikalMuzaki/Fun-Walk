@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import timedelta
 from decimal import Decimal
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlencode
 from xml.etree.ElementTree import ParseError
 
 from cas import CASError
@@ -398,13 +398,18 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
     last_name = (request.POST.get('last_name') or '').strip()
     gender = _parse_gender(request.POST.get('gender'))
     whatsapp_number = _normalize_whatsapp_number(request.POST.get('whatsapp_number'))
-    cohort_year = (
-        cohort_year_override
-        if cohort_year_override is not None
-        else _parse_cohort_year(request.POST.get('cohort_year'))
-    )
-    degree_level = _parse_degree_level(request.POST.get('degree_level'))
-    study_program = _parse_study_program(request.POST.get('study_program'))
+    is_lecturer = request.user.user_type == 'LECTURER'
+    cohort_year = None
+    degree_level = ''
+    study_program = ''
+    if not is_lecturer:
+        cohort_year = (
+            cohort_year_override
+            if cohort_year_override is not None
+            else _parse_cohort_year(request.POST.get('cohort_year'))
+        )
+        degree_level = _parse_degree_level(request.POST.get('degree_level'))
+        study_program = _parse_study_program(request.POST.get('study_program'))
     quantity_value = (request.POST.get('ticket_quantity') or '').strip()
     if not quantity_value:
         raise ValueError('Jumlah tiket wajib dipilih.')
@@ -424,9 +429,9 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         raise ValueError('First name wajib diisi.')
     if not last_name:
         raise ValueError('Last name wajib diisi.')
-    if cohort_year is None:
+    if not is_lecturer and cohort_year is None:
         raise ValueError('Tahun angkatan wajib diisi.')
-    if package_type == 'TICKET_ONLY' and not 1985 <= cohort_year <= 2026:
+    if not is_lecturer and package_type == 'TICKET_ONLY' and not 1985 <= cohort_year <= 2026:
         raise ValueError('Tahun angkatan Non-Paket harus antara 1985 dan 2026.')
     tshirt_sizes = []
     if package_type != 'TICKET_ONLY':
@@ -479,17 +484,22 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
 
 def index(request):
     student_package_purchased = False
+    student_package_restricted = False
     if request.user.is_authenticated:
         student_package_purchased = Ticket.objects.filter(
             transaction__user=request.user,
             transaction__status='PAID',
             package_type='STUDENT_PACK',
         ).exists()
+        student_package_restricted = request.user.user_type != 'STUDENT'
 
     return render(
         request,
         'registration/index.html',
-        {'student_package_purchased': student_package_purchased},
+        {
+            'student_package_purchased': student_package_purchased,
+            'student_package_restricted': student_package_restricted,
+        },
     )
 
 
@@ -572,6 +582,12 @@ def sso_login(request):
     else:
         request.session.pop('sso_next_url', None)
 
+    if settings.SSO_PROVIDER == 'keycloak':
+        oidc_login_url = reverse('oidc_authentication_init')
+        if next_url:
+            oidc_login_url = f'{oidc_login_url}?{urlencode({"next": next_url})}'
+        return redirect(oidc_login_url)
+
     return redirect(reverse('sso_login_callback'))
 
 
@@ -629,7 +645,11 @@ def checkout_alumni(request):
             return redirect('history')
         except ValueError as error:
             messages.error(request, str(error))
-    return render(request, 'registration/checkout-alumni.html')
+    return render(
+        request,
+        'registration/checkout-alumni.html',
+        {'is_lecturer': request.user.user_type == 'LECTURER'},
+    )
 
 
 @login_required
@@ -637,7 +657,7 @@ def checkout_mahasiswa(request):
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
-            'Paket Mahasiswa Aktif hanya dapat dibeli oleh akun yang login melalui SSO UI.',
+            'Paket Mahasiswa Aktif hanya dapat dibeli oleh mahasiswa aktif.',
         )
         return redirect('index')
 
@@ -692,7 +712,10 @@ def checkout_non_paket(request):
     return render(
         request,
         'registration/checkout-non-paket.html',
-        {'cohort_years': range(1985, 2027)},
+        {
+            'cohort_years': range(1985, 2027),
+            'is_lecturer': request.user.user_type == 'LECTURER',
+        },
     )
 
 

@@ -84,6 +84,7 @@
       </label>
       <input id="id_whatsapp_number" inputmode="numeric" name="whatsapp_number" pattern="[0-9]*" required="" type="tel"/>
      </div>
+     {% if not is_lecturer %}
      <div class="checkout-field">
       <label for="id_cohort_year">
        Angkatan
@@ -140,11 +141,12 @@
        </option>
       </select>
      </div>
+     {% endif %}
      <div class="checkout-field">
       <label for="id_ticket_quantity">
        Jumlah Tiket
       </label>
-      <select id="id_ticket_quantity" name="ticket_quantity" required="">
+     <select id="id_ticket_quantity" name="ticket_quantity" required="">
        <option disabled="" selected="" value="">
         Pilih jumlah tiket
        </option>
@@ -152,8 +154,8 @@
        <option value="2">2</option>
        <option value="3">3</option>
        <option value="4">4</option>
-       <option value="5">5</option>
-      </select>
+      <option value="5">5</option>
+     </select>
      </div>
      <div class="checkout-total">
       <span>

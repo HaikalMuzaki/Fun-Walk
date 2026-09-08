@@ -1,4 +1,65 @@
 (() => {
+  const header = document.querySelector('.header');
+  const headerContainer = document.querySelector('.header-container');
+  const navbar = document.querySelector('.navbar');
+
+  if (header && headerContainer && navbar) {
+    const menuToggle = document.createElement('button');
+    const menuOverlay = document.createElement('button');
+
+    menuToggle.className = 'menu-toggle';
+    menuToggle.type = 'button';
+    menuToggle.setAttribute('aria-controls', 'mobile-navigation');
+    menuToggle.setAttribute('aria-expanded', 'false');
+    menuToggle.setAttribute('aria-label', 'Buka menu navigasi');
+    menuToggle.innerHTML = '<span></span><span></span><span></span>';
+
+    navbar.id = 'mobile-navigation';
+    menuOverlay.className = 'menu-overlay';
+    menuOverlay.type = 'button';
+    menuOverlay.setAttribute('aria-label', 'Tutup menu navigasi');
+    menuOverlay.hidden = true;
+
+    const closeMenu = () => {
+      header.classList.remove('menu-open');
+      document.body.classList.remove('menu-open');
+      menuToggle.setAttribute('aria-expanded', 'false');
+      menuToggle.setAttribute('aria-label', 'Buka menu navigasi');
+      menuOverlay.hidden = true;
+    };
+
+    const openMenu = () => {
+      header.classList.add('menu-open');
+      document.body.classList.add('menu-open');
+      menuToggle.setAttribute('aria-expanded', 'true');
+      menuToggle.setAttribute('aria-label', 'Tutup menu navigasi');
+      menuOverlay.hidden = false;
+    };
+
+    menuToggle.addEventListener('click', () => {
+      if (header.classList.contains('menu-open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+    menuOverlay.addEventListener('click', closeMenu);
+    navbar.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        closeMenu();
+      }
+    });
+
+    headerContainer.insertBefore(menuToggle, navbar);
+    document.body.appendChild(menuOverlay);
+  }
+
   const flashMessage = document.querySelector('.messages');
   const form = document.querySelector('#registration-form');
   const quantity = document.querySelector('#id_ticket_quantity');
