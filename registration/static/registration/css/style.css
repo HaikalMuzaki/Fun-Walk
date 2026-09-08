@@ -429,19 +429,24 @@ body {
   padding-top: 0; /* Ruang aman di atas agar label tidak terpotong */
 }
 
+/* Tampilan Card Disabled (Sudah Dipesan) yang lebih modern */
 .package-item--unavailable .package-info {
-  background: #d7d7d7;
+  background: #e4e4e7; 
 }
 
 .package-item--unavailable .package-badge {
-  background: #b8b8b8;
-  color: #555;
+  background: #d4d4d8;
+  color: #71717a;
+  border-color: rgb(255 255 255 / 40%);
 }
 
+/* Paksa semua teks di dalam card jadi abu-abu, ngalahin warna merah bawaan nth-child(2) */
+.package-item--unavailable .package-name,
+.package-item--unavailable .package-features,
 .package-item--unavailable .package-price,
-.package-item--unavailable .package-note,
-.package-item--unavailable .package-price-original {
-  color: #666;
+.package-item--unavailable .package-price-original,
+.package-item--unavailable .package-note {
+  color: #71717a !important; 
 }
 
 .package-info {
@@ -556,8 +561,8 @@ body {
 }
 
 .package-button--disabled {
-  background: #a8a8a8;
-  color: #555;
+  background: #a1a1aa;
+  color: #f4f4f5;
   cursor: not-allowed;
 }
 
