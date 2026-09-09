@@ -292,7 +292,7 @@ body {
 }
 
 .photobooth {
-  --event-image: url("/static/registration/assets/Photobooth.JPG");
+  --event-image: url("/static/registration/assets/Photobooth.jpg");
 }
 
 .star {
