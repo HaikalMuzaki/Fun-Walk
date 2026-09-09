@@ -10,7 +10,7 @@
       Paket Mahasiswa Aktif
     </h1>
     
-    <form method="POST" action="" data-unit-price="225000" data-discounted-unit-price="125000" id="registration-form">
+    <form method="POST" action="" data-unit-price="200000" data-discounted-unit-price="150000" id="registration-form">
       {% csrf_token %}
       {% if messages %}
       <div class="form-errors">
@@ -105,17 +105,17 @@
       <div class="checkout-summary" id="price-summary">
         <div class="checkout-summary-row">
           <span>Harga Normal</span>
-          <strong id="base-price" style="color: #888; text-decoration: line-through;">Rp225.000</strong>
+          <strong id="base-price" style="color: #888; text-decoration: line-through;">Rp200.000</strong>
         </div>
         <div class="checkout-summary-row checkout-summary-row--discount">
           <span>Discount</span>
-          <strong id="discount-price">-Rp100.000</strong>
+          <strong id="discount-price">-Rp50.000</strong>
         </div>
       </div>
       
       <div class="checkout-total">
         <span>Total Harga</span>
-        <strong id="total-price">Rp125.000</strong>
+        <strong id="total-price">Rp150.000</strong>
       </div>
       <label class="terms-consent">
         <input disabled name="accept_terms" required type="checkbox"/>
