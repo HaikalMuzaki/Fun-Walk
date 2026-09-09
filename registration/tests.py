@@ -820,7 +820,8 @@ class PaymentGatewayFallbackTests(TestCase):
         )
         Ticket.objects.create(
             transaction=self.transaction,
-            attendee_name='Gateway User',
+            first_name='Gateway',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
@@ -899,6 +900,44 @@ class PaymentGatewayFallbackTests(TestCase):
         self.assertEqual(
             self.transaction.payment_redirect_url,
             'https://devo.finpay.id/pg/payment/card/id/v2/access/example-token',
+        )
+
+    @patch.dict(
+        os.environ,
+        {
+            'PAYMENT_GATEWAY_API_KEY': 'api-key',
+            'PAYMENT_GATEWAY_SIGNING_SECRET': 'secret',
+            'PAYMENT_GATEWAY_BASE_URL': 'https://payment.ui.ac.id',
+            'PAYMENT_GATEWAY_FALLBACK_BASE_URL': '',
+        },
+        clear=False,
+    )
+    @patch('registration.payment_gateway.requests.post')
+    def test_initiate_payment_uses_expiry_link_when_redirect_url_is_empty(self, mocked_post):
+        success_response = Mock()
+        success_response.status_code = 201
+        success_response.json.return_value = {
+            'success': True,
+            'message': 'payment initiated',
+            'data': {
+                'transaction_id': 'gateway-uuid',
+                'status': 'initiated',
+                'redirect_url': '',
+                'expiry_link': 'https://payment.ui.ac.id/pg/payment/card/id/v2/access/example-token',
+            },
+        }
+        mocked_post.return_value = success_response
+
+        redirect_url = initiate_payment(self.transaction, self.request, 'Paket Alumni')
+        self.transaction.refresh_from_db()
+
+        self.assertEqual(
+            redirect_url,
+            'https://payment.ui.ac.id/pg/payment/card/id/v2/access/example-token',
+        )
+        self.assertEqual(
+            self.transaction.payment_redirect_url,
+            'https://payment.ui.ac.id/pg/payment/card/id/v2/access/example-token',
         )
 
     @patch.dict(

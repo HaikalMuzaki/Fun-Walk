@@ -23,6 +23,7 @@ REDIRECT_URL_KEYS = (
     'payment_link',
     'checkout_url',
     'checkout_link',
+    'expiry_link',
     'url',
     'link',
     'href',
