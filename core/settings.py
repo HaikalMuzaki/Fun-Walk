@@ -223,12 +223,13 @@ if SSO_PROVIDER == 'keycloak':
     if not all((KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID)):
         raise ValueError('KEYCLOAK_URL, KEYCLOAK_REALM, dan KEYCLOAK_CLIENT_ID wajib diisi.')
 
-    KEYCLOAK_USERNAME_CLAIM = os.environ.get('KEYCLOAK_USERNAME_CLAIM', 'preferred_username')
-    KEYCLOAK_NPM_CLAIM = os.environ.get('KEYCLOAK_NPM_CLAIM', 'npm')
-    KEYCLOAK_ROLE_CLAIM = os.environ.get('KEYCLOAK_ROLE_CLAIM', 'roles')
-    KEYCLOAK_STUDENT_ROLES = os.environ.get('KEYCLOAK_STUDENT_ROLES', 'mahasiswa,student')
-    KEYCLOAK_LECTURER_ROLES = os.environ.get('KEYCLOAK_LECTURER_ROLES', 'dosen,lecturer')
-    KEYCLOAK_ALUMNI_ROLES = os.environ.get('KEYCLOAK_ALUMNI_ROLES', 'alumni')
+    KEYCLOAK_USERNAME_CLAIM = os.environ.get('KEYCLOAK_USERNAME_CLAIM', 'username')
+    KEYCLOAK_NAME_CLAIM = os.environ.get('KEYCLOAK_NAME_CLAIM', 'given_name')
+    KEYCLOAK_NPM_CLAIM = os.environ.get('KEYCLOAK_NPM_CLAIM', 'kodeIdentitas')
+    KEYCLOAK_ROLE_CLAIM = os.environ.get('KEYCLOAK_ROLE_CLAIM', 'role')
+    KEYCLOAK_STUDENT_ROLES = os.environ.get('KEYCLOAK_STUDENT_ROLES', 'mahasiswa')
+    KEYCLOAK_LECTURER_ROLES = os.environ.get('KEYCLOAK_LECTURER_ROLES', 'dosen')
+    KEYCLOAK_ALUMNI_ROLES = os.environ.get('KEYCLOAK_ALUMNI_ROLES', 'alumni,staf')
     _KEYCLOAK_OIDC_BASE = f'{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect'
 
     OIDC_RP_CLIENT_ID = KEYCLOAK_CLIENT_ID

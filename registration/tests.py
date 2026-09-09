@@ -11,12 +11,25 @@ import os
 import shutil
 import tempfile
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from . import views
 from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
+from .oidc import FasilkomOIDCAuthenticationBackend
 from .payment_gateway import initiate_payment
+
+
+class KeycloakClaimTests(SimpleTestCase):
+    def setUp(self):
+        self.backend = object.__new__(FasilkomOIDCAuthenticationBackend)
+
+    def test_itf_claims_map_to_application_user_types(self):
+        self.assertEqual(self.backend._username({'username': 'bilqis'}), 'bilqis')
+        self.assertEqual(self.backend._npm({'kodeIdentitas': '2406432141'}), '2406432141')
+        self.assertEqual(self.backend._user_type({'role': 'mahasiswa'}), 'STUDENT')
+        self.assertEqual(self.backend._user_type({'role': 'dosen'}), 'LECTURER')
+        self.assertEqual(self.backend._user_type({'role': 'staf'}), 'ALUMNI')
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

@@ -10,23 +10,23 @@ class FasilkomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     """Create or update the local account from verified Keycloak UserInfo claims."""
 
     def _username(self, claims):
-        configured_claim = getattr(settings, 'KEYCLOAK_USERNAME_CLAIM', 'preferred_username')
-        username = claims.get(configured_claim) or claims.get('preferred_username') or claims.get('sub')
+        configured_claim = getattr(settings, 'KEYCLOAK_USERNAME_CLAIM', 'username')
+        username = claims.get(configured_claim) or claims.get('username') or claims.get('preferred_username') or claims.get('sub')
         if not username:
             username = claims.get('email')
         return str(username or '').strip().lower()[:150]
 
     def _npm(self, claims):
-        configured_claim = getattr(settings, 'KEYCLOAK_NPM_CLAIM', 'npm')
-        for claim_name in (configured_claim, 'npm', 'student_id', 'studentid', 'kode_identitas'):
+        configured_claim = getattr(settings, 'KEYCLOAK_NPM_CLAIM', 'kodeIdentitas')
+        for claim_name in (configured_claim, 'kodeIdentitas', 'npm', 'student_id', 'studentid', 'kode_identitas'):
             value = claims.get(claim_name)
             if value:
                 return str(value).strip()
         return ''
 
     def _roles(self, claims):
-        configured_claim = getattr(settings, 'KEYCLOAK_ROLE_CLAIM', 'roles')
-        role_values = claims.get(configured_claim, claims.get('roles', []))
+        configured_claim = getattr(settings, 'KEYCLOAK_ROLE_CLAIM', 'role')
+        role_values = claims.get(configured_claim, claims.get('role', claims.get('roles', [])))
         if isinstance(role_values, str):
             role_values = [role_values]
         roles = {str(role).strip().lower() for role in (role_values or []) if role}
@@ -44,9 +44,9 @@ class FasilkomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
     def _user_type(self, claims):
         roles = self._roles(claims)
-        lecturer_roles = self._role_names('KEYCLOAK_LECTURER_ROLES', 'dosen,lecturer')
-        alumni_roles = self._role_names('KEYCLOAK_ALUMNI_ROLES', 'alumni')
-        student_roles = self._role_names('KEYCLOAK_STUDENT_ROLES', 'mahasiswa,student')
+        lecturer_roles = self._role_names('KEYCLOAK_LECTURER_ROLES', 'dosen')
+        alumni_roles = self._role_names('KEYCLOAK_ALUMNI_ROLES', 'alumni,staf')
+        student_roles = self._role_names('KEYCLOAK_STUDENT_ROLES', 'mahasiswa')
 
         if roles & lecturer_roles:
             return 'LECTURER'
@@ -59,7 +59,16 @@ class FasilkomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def _sync_user(self, user, claims):
         email = str(claims.get('email') or '').strip().lower()
         npm = self._npm(claims)
-        full_name = str(claims.get('name') or claims.get('preferred_username') or '').strip()
+        configured_claim = getattr(settings, 'KEYCLOAK_NAME_CLAIM', 'given_name')
+        full_name = str(
+            claims.get(configured_claim)
+            or claims.get('given_name')
+            or claims.get('given name')
+            or claims.get('name')
+            or claims.get('username')
+            or claims.get('preferred_username')
+            or ''
+        ).strip()
         update_fields = []
 
         if email and user.email.lower() != email:
