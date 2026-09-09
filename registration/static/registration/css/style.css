@@ -291,12 +291,12 @@ body {
   --event-image: url("https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=700&q=80");
 }
 
-.photobooth {
-  --event-image: url("/static/registration/assets/Photobooth.jpg");
+.muskan {
+  --event-image: url("/static/registration/assets/muskan.jpg");
 }
 
-.star {
-  --event-image: url("https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80");
+.doorprize {
+  --event-image: url("/static/registration/assets/doorprize.jpg");
 }
 
 .package-section {
