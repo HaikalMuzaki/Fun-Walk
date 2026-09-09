@@ -32,6 +32,36 @@ class KeycloakClaimTests(SimpleTestCase):
         self.assertEqual(self.backend._user_type({'role': 'staf'}), 'ALUMNI')
 
 
+@override_settings(
+    PAYMENT_GATEWAY_MAINTENANCE=True,
+    PAYMENT_GATEWAY_MAINTENANCE_MESSAGE='Layanan pembayaran sedang dalam pemeliharaan.',
+)
+class PaymentGatewayMaintenanceTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username='maintenance@example.com',
+            email='maintenance@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+
+    def test_index_displays_maintenance_banner_and_disables_package_purchase(self):
+        response = self.client.get('/')
+
+        self.assertContains(response, 'Layanan pembayaran sedang dalam pemeliharaan.')
+        self.assertContains(response, 'Pembelian Sementara Ditutup', count=3)
+        self.assertNotContains(response, 'href="/checkout/alumni/"')
+
+    def test_checkout_is_blocked_without_creating_a_transaction(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post('/checkout/alumni/', follow=True)
+
+        self.assertRedirects(response, '/')
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertContains(response, 'Layanan pembayaran sedang dalam pemeliharaan.')
+
+
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class LoginRegistrationTests(TestCase):
     def test_register_rejects_weak_password_and_does_not_create_account(self):

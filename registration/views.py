@@ -100,6 +100,14 @@ def _is_student_sso_user(user):
     return getattr(user, 'user_type', '') == 'STUDENT'
 
 
+def _payment_gateway_is_under_maintenance(request):
+    if not settings.PAYMENT_GATEWAY_MAINTENANCE:
+        return False
+
+    messages.warning(request, settings.PAYMENT_GATEWAY_MAINTENANCE_MESSAGE)
+    return True
+
+
 def _get_sso_student_cohort_year(user):
     """Derive the admission year from the NPM supplied by SSO UI."""
     npm = ''.join(character for character in (getattr(user, 'npm', '') or '') if character.isdigit())
@@ -638,6 +646,9 @@ def sso_login_callback(request):
 
 @login_required
 def checkout_alumni(request):
+    if _payment_gateway_is_under_maintenance(request):
+        return redirect('index')
+
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'ALUMNI_PACK')
@@ -654,6 +665,9 @@ def checkout_alumni(request):
 
 @login_required
 def checkout_mahasiswa(request):
+    if _payment_gateway_is_under_maintenance(request):
+        return redirect('index')
+
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
@@ -702,6 +716,9 @@ def checkout_mahasiswa(request):
 
 @login_required
 def checkout_non_paket(request):
+    if _payment_gateway_is_under_maintenance(request):
+        return redirect('index')
+
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'TICKET_ONLY')
@@ -721,7 +738,8 @@ def checkout_non_paket(request):
 
 @login_required
 def history(request):
-    _sync_pending_transactions_for_user(request.user)
+    if not settings.PAYMENT_GATEWAY_MAINTENANCE:
+        _sync_pending_transactions_for_user(request.user)
     return render(
         request,
         'registration/history.html',
@@ -736,6 +754,9 @@ def custom_logout(request):
 
 @login_required
 def payment_page(request):
+    if _payment_gateway_is_under_maintenance(request):
+        return redirect('history')
+
     transaction_reference = (request.GET.get('trx') or '').strip()
     gateway_return = (request.GET.get('gateway_return') or '').strip().lower()
     if not transaction_reference:
@@ -803,6 +824,9 @@ def payment_page(request):
 
 @login_required
 def retry_payment(request, transaction_id):
+    if _payment_gateway_is_under_maintenance(request):
+        return redirect('history')
+
     if request.method == 'POST':
         try:
             transaction_obj = Transaction.objects.get(

@@ -137,7 +137,11 @@
             </ul>
             <strong class="package-price">Rp200.000</strong>
           </div>
-          <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>
+          {% if payment_gateway_maintenance %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+          {% else %}
+            <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>
+          {% endif %}
         </div>
 
         <div class="package-item package-item--student{% if student_package_purchased %} package-item--unavailable{% endif %}">
@@ -157,7 +161,9 @@
             </div>
             <p class="package-note">*1 SSO UI only untuk 1 tiket</p>
           </div>
-          {% if student_package_purchased %}
+          {% if payment_gateway_maintenance %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+          {% elif student_package_purchased %}
             <span class="package-button package-button--disabled" aria-disabled="true">Sudah Dipesan</span>
           {% elif student_package_restricted %}
             <span class="package-button package-button--disabled" aria-disabled="true">Khusus Mahasiswa Aktif</span>
@@ -176,7 +182,11 @@
             </ul>
             <strong class="package-price">Rp50.000</strong>
           </div>
-          <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Paket Basic</a>
+          {% if payment_gateway_maintenance %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+          {% else %}
+            <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Paket Basic</a>
+          {% endif %}
         </div>
       </div>
     </article>

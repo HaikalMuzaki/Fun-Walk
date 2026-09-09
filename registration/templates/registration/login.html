@@ -177,9 +177,13 @@
            Rp225.000
           </strong>
          </div>
-         <a class="package-button" href="{% url 'checkout_alumni' %}">
-          Beli Paket Premium
-         </a>
+         {% if payment_gateway_maintenance %}
+          <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+         {% else %}
+          <a class="package-button" href="{% url 'checkout_alumni' %}">
+           Beli Paket Premium
+          </a>
+         {% endif %}
         </div>
         <div class="package-item package-item--student">
          <span class="package-badge">
@@ -203,9 +207,13 @@
            </strong>
           </div>
          </div>
-         <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
-           Beli Paket Mahasiswa Aktif
-         </a>
+         {% if payment_gateway_maintenance %}
+          <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+         {% else %}
+          <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
+            Beli Paket Mahasiswa Aktif
+          </a>
+         {% endif %}
         </div>
         <div class="package-item">
          <div class="package-info">
@@ -222,9 +230,13 @@
            Rp50.000
           </strong>
          </div>
-         <a class="package-button" href="{% url 'checkout_non_paket' %}">
-          Beli Paket Basic
-         </a>
+         {% if payment_gateway_maintenance %}
+          <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+         {% else %}
+          <a class="package-button" href="{% url 'checkout_non_paket' %}">
+           Beli Paket Basic
+          </a>
+         {% endif %}
         </div>
        </div>
       </article>

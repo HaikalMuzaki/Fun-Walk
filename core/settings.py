@@ -34,6 +34,11 @@ DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true' if DJANGO_ENV != 'production' else 'false').lower() == 'true'
 
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
+PAYMENT_GATEWAY_MAINTENANCE = os.environ.get('PAYMENT_GATEWAY_MAINTENANCE', 'false').lower() == 'true'
+PAYMENT_GATEWAY_MAINTENANCE_MESSAGE = os.environ.get(
+    'PAYMENT_GATEWAY_MAINTENANCE_MESSAGE',
+    'Layanan pembayaran sedang dalam pemeliharaan. Pembelian paket sementara tidak tersedia.',
+)
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -106,6 +111,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'registration.context_processors.payment_gateway_maintenance',
             ],
         },
     },

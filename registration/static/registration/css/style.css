@@ -177,6 +177,15 @@ body {
   animation: flashMessageHide 0.35s ease 3s forwards;
 }
 
+.payment-maintenance-banner {
+  background: #1d1d1d;
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 8px 24px;
+  text-align: center;
+}
+
 .messages.is-hiding {
   opacity: 0;
   transform: translateX(-50%) translateY(-0.4rem);
