@@ -32,6 +32,30 @@ class KeycloakClaimTests(SimpleTestCase):
         self.assertEqual(self.backend._user_type({'role': 'staf'}), 'ALUMNI')
 
 
+class KeycloakAccountMatchingTests(TestCase):
+    def setUp(self):
+        self.backend = object.__new__(FasilkomOIDCAuthenticationBackend)
+        self.backend.UserModel = CustomUser
+
+    def test_email_match_takes_priority_over_a_different_username_match(self):
+        email_user = CustomUser.objects.create_user(
+            username='existing-email-account',
+            email='keycloak@example.com',
+            password='Strong;123',
+        )
+        CustomUser.objects.create_user(
+            username='keycloak-username',
+            email='other@example.com',
+            password='Strong;123',
+        )
+
+        matches = self.backend.filter_users_by_claims(
+            {'email': 'keycloak@example.com', 'username': 'keycloak-username'},
+        )
+
+        self.assertEqual(list(matches), [email_user])
+
+
 @override_settings(
     PAYMENT_GATEWAY_MAINTENANCE=True,
     PAYMENT_GATEWAY_MAINTENANCE_MESSAGE='Layanan pembayaran sedang dalam pemeliharaan.',
