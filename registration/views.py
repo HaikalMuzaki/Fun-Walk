@@ -402,6 +402,10 @@ def _sync_pending_transactions_for_user(user):
     )
 
     for transaction_obj in pending_transactions:
+        # Pembayaran manual menunggu keputusan admin, bukan status dari gateway.
+        if transaction_obj.payment_channel == 'MANUAL_TRANSFER_BNI':
+            continue
+
         if transaction_obj.gateway_transaction_id:
             try:
                 refresh_transaction_status(transaction_obj)

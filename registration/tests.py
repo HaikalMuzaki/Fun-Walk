@@ -130,6 +130,28 @@ class ManualPaymentTests(TestCase):
         self.assertEqual(self.transaction.payment_channel, 'MANUAL_TRANSFER_BNI')
         self.assertTrue(self.transaction.manual_payment_proof.name)
 
+    def test_history_does_not_expire_manual_payment_awaiting_review(self):
+        self.transaction.status = 'PENDING_CONFIRMATION'
+        self.transaction.payment_channel = 'MANUAL_TRANSFER_BNI'
+        self.transaction.save(update_fields=['status', 'payment_channel'])
+        Transaction.objects.filter(pk=self.transaction.pk).update(
+            created_at=timezone.now() - timedelta(minutes=7),
+        )
+        Ticket.objects.create(
+            transaction=self.transaction,
+            first_name='Peserta',
+            last_name='Manual',
+            package_type='TICKET_ONLY',
+            price=Decimal('50000'),
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get('/history/', HTTP_HOST='127.0.0.1')
+
+        self.transaction.refresh_from_db()
+        self.assertEqual(self.transaction.status, 'PENDING_CONFIRMATION')
+        self.assertContains(response, 'Menunggu Konfirmasi')
+
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class LoginRegistrationTests(TestCase):
