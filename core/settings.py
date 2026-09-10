@@ -35,6 +35,7 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'true' if DJANGO_ENV != 'production' else
 
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
 PAYMENT_GATEWAY_MAINTENANCE = os.environ.get('PAYMENT_GATEWAY_MAINTENANCE', 'false').lower() == 'true'
+MANUAL_PAYMENT_ENABLED = os.environ.get('MANUAL_PAYMENT_ENABLED', 'false').lower() == 'true'
 PAYMENT_GATEWAY_MAINTENANCE_MESSAGE = os.environ.get(
     'PAYMENT_GATEWAY_MAINTENANCE_MESSAGE',
     'Layanan pembayaran sedang dalam pemeliharaan. Pembelian paket sementara tidak tersedia.',

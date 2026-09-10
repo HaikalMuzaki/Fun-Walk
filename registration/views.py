@@ -1,5 +1,6 @@
 import json
 import logging
+from pathlib import Path
 from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import parse_qs, urlencode
@@ -101,11 +102,41 @@ def _is_student_sso_user(user):
 
 
 def _payment_gateway_is_under_maintenance(request):
-    if not settings.PAYMENT_GATEWAY_MAINTENANCE:
+    if not settings.PAYMENT_GATEWAY_MAINTENANCE or settings.MANUAL_PAYMENT_ENABLED:
         return False
 
     messages.warning(request, settings.PAYMENT_GATEWAY_MAINTENANCE_MESSAGE)
     return True
+
+
+def _validate_manual_payment_proof(upload):
+    if upload is None:
+        raise ValueError('Bukti pembayaran wajib diunggah.')
+    if upload.size > 5 * 1024 * 1024:
+        raise ValueError('Ukuran bukti pembayaran maksimal 5 MB.')
+
+    extension = Path(upload.name).suffix.lower()
+    if extension not in {'.jpeg', '.jpg', '.png', '.svg'}:
+        raise ValueError('Bukti pembayaran harus berformat JPEG, JPG, PNG, atau SVG.')
+
+    if extension in {'.jpeg', '.jpg', '.png'}:
+        from PIL import Image
+
+        try:
+            image = Image.open(upload)
+            image.verify()
+            upload.seek(0)
+        except (OSError, ValueError):
+            raise ValueError('File gambar bukti pembayaran tidak valid.')
+
+
+def _manual_payment_context(transaction_obj):
+    return {
+        'transaction': transaction_obj,
+        'bank_name': 'BNI',
+        'account_name': 'Universitas Indonesia - BHPP (Fasilkom NON-BP)',
+        'account_number': '1273000444',
+    }
 
 
 def _get_sso_student_cohort_year(user):
@@ -754,9 +785,6 @@ def custom_logout(request):
 
 @login_required
 def payment_page(request):
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('history')
-
     transaction_reference = (request.GET.get('trx') or '').strip()
     gateway_return = (request.GET.get('gateway_return') or '').strip().lower()
     if not transaction_reference:
@@ -770,6 +798,11 @@ def payment_page(request):
 
     if transaction_obj.user_id != request.user.id:
         messages.error(request, 'Anda tidak memiliki akses ke transaksi ini.')
+        return redirect('history')
+
+    if settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED:
+        return redirect('manual_payment', transaction_id=transaction_obj.id)
+    if _payment_gateway_is_under_maintenance(request):
         return redirect('history')
 
     if transaction_obj.gateway_transaction_id:
@@ -815,6 +848,9 @@ def payment_page(request):
             transaction_obj.save(update_fields=['status', 'failed_at'])
         return redirect(finpay_url)
     except ValueError as error:
+        if settings.MANUAL_PAYMENT_ENABLED:
+            messages.warning(request, 'Gateway pembayaran tidak tersedia. Silakan gunakan transfer manual.')
+            return redirect('manual_payment', transaction_id=transaction_obj.id)
         messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
         return redirect('history')
 
@@ -824,6 +860,8 @@ def payment_page(request):
 
 @login_required
 def retry_payment(request, transaction_id):
+    if settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED:
+        return redirect('manual_payment', transaction_id=transaction_id)
     if _payment_gateway_is_under_maintenance(request):
         return redirect('history')
 
@@ -883,10 +921,44 @@ def retry_payment(request, transaction_id):
             messages.error(request, 'Transaksi tidak ditemukan atau status pembayaran sudah selesai.')
             return redirect('history')
         except ValueError as error:
+            if settings.MANUAL_PAYMENT_ENABLED:
+                messages.warning(request, 'Gateway pembayaran tidak tersedia. Silakan gunakan transfer manual.')
+                return redirect('manual_payment', transaction_id=transaction_id)
             messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
             return redirect('history')
 
     return redirect('history')
+
+
+@login_required
+def manual_payment(request, transaction_id):
+    try:
+        transaction_obj = Transaction.objects.get(id=transaction_id, user=request.user)
+    except Transaction.DoesNotExist:
+        messages.error(request, 'Transaksi pembayaran tidak ditemukan.')
+        return redirect('history')
+
+    if transaction_obj.status in {'PAID', 'FAILED', 'EXPIRED', 'CANCELLED'}:
+        messages.error(request, 'Transaksi ini tidak dapat dibayar secara manual.')
+        return redirect('history')
+
+    if request.method == 'POST':
+        try:
+            proof = request.FILES.get('payment_proof')
+            _validate_manual_payment_proof(proof)
+            transaction_obj.manual_payment_proof = proof
+            transaction_obj.manual_payment_submitted_at = timezone.now()
+            transaction_obj.payment_channel = 'MANUAL_TRANSFER_BNI'
+            transaction_obj.payment_type = 'MANUAL_TRANSFER'
+            transaction_obj.gateway_status = 'manual_pending_verification'
+            transaction_obj.status = 'PENDING_CONFIRMATION'
+            transaction_obj.save(update_fields=['manual_payment_proof', 'manual_payment_submitted_at', 'payment_channel', 'payment_type', 'gateway_status', 'status'])
+            messages.success(request, 'Bukti pembayaran berhasil diunggah dan sedang menunggu konfirmasi panitia.')
+            return redirect('history')
+        except ValueError as error:
+            messages.error(request, str(error))
+
+    return render(request, 'registration/manual-payment.html', _manual_payment_context(transaction_obj))
 
 
 @csrf_exempt

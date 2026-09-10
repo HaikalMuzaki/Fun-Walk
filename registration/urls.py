@@ -12,6 +12,7 @@ urlpatterns = [
     path('checkout/tiket-saja/', views.checkout_non_paket, name='checkout_non_paket'),
     path('history/', views.history, name='history'),
     path('payment/', views.payment_page, name='payment_page'),
+    path('payment/manual/<int:transaction_id>/', views.manual_payment, name='manual_payment'),
     path('callback/payment/', views.payment_callback, name='payment_callback'),
     path('history/retry-payment/<int:transaction_id>/', views.retry_payment, name='retry_payment'),
     path('history/manage/', views.manage_ticket, name='manage_ticket'),

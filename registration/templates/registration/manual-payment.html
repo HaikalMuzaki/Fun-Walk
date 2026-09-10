@@ -1,0 +1,25 @@
+{% extends 'registration/base.html' %}
+
+{% block title %}Pembayaran Manual - Dies Natalis 40 Fasilkom UI{% endblock %}
+
+{% block content %}
+<main class="manual-payment-page">
+  <section class="manual-payment-card">
+    <h1>Pembayaran Manual</h1>
+    <p class="manual-payment-intro">Gateway pembayaran sedang dalam pemeliharaan. Silakan transfer sesuai total pesanan, lalu unggah bukti pembayaran.</p>
+    <div class="manual-bank-details">
+      <p><strong>Nama Rekening</strong><span>{{ account_name }}</span></p>
+      <p><strong>Nomor Rekening</strong><span>{{ account_number }}</span></p>
+      <p><strong>Bank</strong><span>{{ bank_name }}</span></p>
+      <p><strong>Total Transfer</strong><span>Rp{{ transaction.total_amount|floatformat:0 }}</span></p>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="manual-payment-form">
+      {% csrf_token %}
+      <label for="payment_proof">Upload Bukti Pembayaran</label>
+      <input id="payment_proof" name="payment_proof" type="file" accept=".jpeg,.jpg,.png,.svg,image/jpeg,image/png,image/svg+xml" required>
+      <small>Format JPEG, JPG, PNG, atau SVG. Maksimal 5 MB.</small>
+      <button type="submit">Upload Bukti dan Kembali ke History</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

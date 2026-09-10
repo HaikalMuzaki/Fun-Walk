@@ -191,7 +191,8 @@ class TransactionAdmin(admin.ModelAdmin):
         'transaction_id', 'idempotency_key', 'total_amount', 'created_at',
         'gateway_transaction_id', 'gateway_status', 'payment_channel',
         'payment_type', 'payment_redirect_url', 'paid_at', 'failed_at',
-        'gateway_response_payload', 'gateway_callback_payload'
+        'gateway_response_payload', 'gateway_callback_payload',
+        'manual_payment_submitted_at', 'manual_payment_proof_link',
     )
 
     # Struktur UI baru di halaman Detail Transaksi untuk melihat info lengkap
@@ -207,6 +208,9 @@ class TransactionAdmin(admin.ModelAdmin):
                 'gateway_transaction_id', 'gateway_status', 'payment_channel',
                 'payment_type', 'paid_at', 'failed_at', 'payment_redirect_url'
             )
+        }),
+        ('Bukti Pembayaran Manual', {
+            'fields': ('manual_payment_proof_link', 'manual_payment_submitted_at')
         }),
         ('Log Payload API Teknis', {
             'fields': ('idempotency_key', 'gateway_response_payload', 'gateway_callback_payload'),
@@ -230,6 +234,11 @@ class TransactionAdmin(admin.ModelAdmin):
                 'backup/create/',
                 self.admin_site.admin_view(self.create_backup_view),
                 name='registration_transaction_backup_create',
+            ),
+            path(
+                '<int:transaction_id>/proof/',
+                self.admin_site.admin_view(self.download_manual_proof_view),
+                name='registration_transaction_manual_proof',
             ),
         ]
         return custom_urls + super().get_urls()
@@ -285,6 +294,31 @@ class TransactionAdmin(admin.ModelAdmin):
     @admin.display(description='Tanggal Transaksi', ordering='created_at')
     def created_at_local(self, obj):
         return timezone.localtime(obj.created_at).strftime('%d/%m/%Y %H:%M:%S')
+
+    @admin.display(description='Bukti Pembayaran')
+    def manual_payment_proof_link(self, obj):
+        if not obj.manual_payment_proof:
+            return '-'
+        url = reverse('admin:registration_transaction_manual_proof', args=[obj.pk])
+        return format_html('<a class="button" href="{}">Unduh Bukti Pembayaran</a>', url)
+
+    def download_manual_proof_view(self, request, transaction_id):
+        transaction_obj = self.get_object(request, transaction_id)
+        if transaction_obj is None or not transaction_obj.manual_payment_proof:
+            raise Http404('Bukti pembayaran tidak ditemukan.')
+        file_handle = transaction_obj.manual_payment_proof.open('rb')
+        return FileResponse(
+            file_handle,
+            as_attachment=True,
+            filename=transaction_obj.manual_payment_proof.name.split('/')[-1],
+        )
+
+    def save_model(self, request, obj, form, change):
+        if obj.status == 'PAID' and not obj.paid_at:
+            obj.paid_at = timezone.now()
+        elif obj.status == 'FAILED' and not obj.failed_at:
+            obj.failed_at = timezone.now()
+        super().save_model(request, obj, form, change)
 
     def responses_view(self, request):
         rows, transaction_count = _build_transaction_export_rows()

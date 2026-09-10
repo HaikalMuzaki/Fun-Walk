@@ -23,6 +23,8 @@ services:
       - DB_HOST=db-prod
     depends_on:
       - db-prod
+    volumes:
+      - media_data_prod:/app/media
 
   # ================= STAGING =================
   db-staging:
@@ -48,7 +50,11 @@ services:
       - DB_HOST=db-staging
     depends_on:
       - db-staging
+    volumes:
+      - media_data_staging:/app/media
 
 volumes:
   postgres_data_prod:
   postgres_data_staging:
+  media_data_prod:
+  media_data_staging:

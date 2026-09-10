@@ -2,6 +2,11 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 import uuid
 
+
+def manual_payment_proof_path(instance, filename):
+    extension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    return f'manual_payment_proofs/{instance.transaction_id}.{extension}'
+
 # --- 1. AKUN USER (Bisa SSO Mahasiswa Aktif atau Email Alumni) ---
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = [
@@ -78,6 +83,8 @@ class Transaction(models.Model):
     payment_channel = models.CharField(max_length=50, blank=True, default='', verbose_name="Channel Pembayaran")
     payment_type = models.CharField(max_length=50, blank=True, default='', verbose_name="Tipe Pembayaran")
     payment_redirect_url = models.URLField(max_length=500, blank=True, default='', verbose_name="Redirect URL Payment")
+    manual_payment_proof = models.FileField(upload_to=manual_payment_proof_path, blank=True, null=True, verbose_name='Bukti Pembayaran Manual')
+    manual_payment_submitted_at = models.DateTimeField(blank=True, null=True, verbose_name='Waktu Upload Bukti')
     gateway_response_payload = models.JSONField(blank=True, null=True, verbose_name="Payload Response Gateway")
     gateway_callback_payload = models.JSONField(blank=True, null=True, verbose_name="Payload Callback Gateway")
     paid_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Lunas")

@@ -177,7 +177,7 @@
            Rp225.000
           </strong>
          </div>
-         {% if payment_gateway_maintenance %}
+         {% if payment_gateway_maintenance and not manual_payment_enabled %}
           <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
          {% else %}
           <a class="package-button" href="{% url 'checkout_alumni' %}">
@@ -207,7 +207,7 @@
            </strong>
           </div>
          </div>
-         {% if payment_gateway_maintenance %}
+         {% if payment_gateway_maintenance and not manual_payment_enabled %}
           <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
          {% else %}
           <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
@@ -230,7 +230,7 @@
            Rp50.000
           </strong>
          </div>
-         {% if payment_gateway_maintenance %}
+         {% if payment_gateway_maintenance and not manual_payment_enabled %}
           <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
          {% else %}
           <a class="package-button" href="{% url 'checkout_non_paket' %}">

@@ -1,4 +1,5 @@
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
 from xml.etree.ElementTree import ParseError
 from requests.exceptions import ConnectTimeout, RequestException
@@ -84,6 +85,50 @@ class PaymentGatewayMaintenanceTests(TestCase):
         self.assertRedirects(response, '/')
         self.assertEqual(Transaction.objects.count(), 0)
         self.assertContains(response, 'Layanan pembayaran sedang dalam pemeliharaan.')
+
+
+class ManualPaymentTests(TestCase):
+    def setUp(self):
+        self.temp_media_root = tempfile.mkdtemp()
+        self.settings_override = self.settings(MEDIA_ROOT=self.temp_media_root)
+        self.settings_override.enable()
+        self.user = CustomUser.objects.create_user(
+            username='manual@example.com',
+            email='manual@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('50000'),
+        )
+
+    def tearDown(self):
+        self.settings_override.disable()
+        shutil.rmtree(self.temp_media_root, ignore_errors=True)
+
+    def test_uploading_manual_payment_proof_waits_for_admin_confirmation(self):
+        self.client.force_login(self.user)
+        proof = SimpleUploadedFile(
+            'proof.png',
+            b'\x89PNG\r\n\x1a\n' + b'proof',
+            content_type='image/png',
+        )
+
+        with patch('PIL.Image.open') as mocked_open:
+            mocked_open.return_value.verify.return_value = None
+            response = self.client.post(
+                f'/payment/manual/{self.transaction.id}/',
+                {'payment_proof': proof},
+                follow=True,
+            )
+
+        self.transaction.refresh_from_db()
+        self.assertRedirects(response, '/history/')
+        self.assertEqual(self.transaction.status, 'PENDING_CONFIRMATION')
+        self.assertEqual(self.transaction.payment_channel, 'MANUAL_TRANSFER_BNI')
+        self.assertTrue(self.transaction.manual_payment_proof.name)
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

@@ -13,7 +13,7 @@
 <body>
   {% if payment_gateway_maintenance %}
   <div class="payment-maintenance-banner" role="status">
-    {{ payment_gateway_maintenance_message }} Mohon maaf atas ketidaknyamanannya.
+    {{ payment_gateway_maintenance_message }}{% if manual_payment_enabled %} Transfer manual tersedia.{% endif %} Mohon maaf atas ketidaknyamanannya.
   </div>
   {% endif %}
   <header class="header">
