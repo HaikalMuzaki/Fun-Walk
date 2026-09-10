@@ -99,17 +99,15 @@ class FasilkomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def filter_users_by_claims(self, claims):
         email = str(claims.get('email') or '').strip()
         username = self._username(claims)
-        if email:
-            email_matches = self.UserModel.objects.filter(email__iexact=email).order_by('id')
-            if email_matches.count() == 1:
-                return email_matches
-            if email_matches.exists():
-                return self.UserModel.objects.none()
-
         if username:
             username_matches = self.UserModel.objects.filter(username__iexact=username).order_by('id')
             if username_matches.count() == 1:
                 return username_matches
+
+        if email:
+            email_matches = self.UserModel.objects.filter(email__iexact=email).order_by('id')
+            if email_matches.count() == 1:
+                return email_matches
 
         return self.UserModel.objects.none()
 

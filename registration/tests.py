@@ -37,13 +37,13 @@ class KeycloakAccountMatchingTests(TestCase):
         self.backend = object.__new__(FasilkomOIDCAuthenticationBackend)
         self.backend.UserModel = CustomUser
 
-    def test_email_match_takes_priority_over_a_different_username_match(self):
+    def test_username_match_takes_priority_over_a_different_email_match(self):
         email_user = CustomUser.objects.create_user(
             username='existing-email-account',
             email='keycloak@example.com',
             password='Strong;123',
         )
-        CustomUser.objects.create_user(
+        username_user = CustomUser.objects.create_user(
             username='keycloak-username',
             email='other@example.com',
             password='Strong;123',
@@ -53,7 +53,7 @@ class KeycloakAccountMatchingTests(TestCase):
             {'email': 'keycloak@example.com', 'username': 'keycloak-username'},
         )
 
-        self.assertEqual(list(matches), [email_user])
+        self.assertEqual(list(matches), [username_user])
 
 
 @override_settings(
