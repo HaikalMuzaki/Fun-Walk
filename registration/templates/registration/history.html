@@ -174,8 +174,8 @@
       backdrop-filter: blur(4px); z-index: 150; justify-content: center; align-items: center; padding: 1rem;
     }
     .manage-modal {
-      background: #f8f9fa; border-radius: 16px; width: 100%; max-width: 480px; 
-      box-shadow: 0 10px 40px rgba(0,0,0,0.15); font-family: 'Poppins', sans-serif; position: relative; overflow: hidden;
+      background: #f8f9fa; border-radius: 16px; width: 100%; max-width: 416px; max-height: min(calc(100dvh - 3rem), 38rem);
+      display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.15); font-family: 'Poppins', sans-serif; position: relative; overflow: hidden;
     }
     .manage-modal-header {
       padding: 24px 24px 20px; border-bottom: 2px solid #eef062; background: #fff; position: relative;
@@ -193,12 +193,12 @@
       position: absolute; top: 24px; right: 24px; background: none; border: none; color: #9ca3af; cursor: pointer; padding: 0; transition: color 0.2s;
     }
     .manage-modal-close:hover { color: #ef4444; }
-    .manage-modal-body { padding: 24px; }
+    .manage-modal-body { min-height: 0; padding: 20px 24px 24px; overflow-y: auto; }
     .manage-modal-section-title {
       font-size: 0.75rem; font-weight: 700; color: #9ca3af; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px;
     }
     .manage-modal-img-container {
-      background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     /* Memaksa inputan JS agar berbentuk grid 2 kolom secara rapi */
     #modal_size_fields {
@@ -222,6 +222,10 @@
       background: #fff; color: #ef4444; padding: 14px; border: 1px solid #fca5a5; border-radius: 10px; font-weight: 600; font-family: inherit; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;
     }
     .btn-cancel:hover { background: #fef2f2; }
+    @media (max-height: 680px) {
+      .manage-modal-header { padding: 18px 24px 16px; }
+      .manage-modal-img-container { padding: 10px; }
+    }
   </style>
 
   <div id="actionModal">
@@ -258,7 +262,7 @@
             <div class="manage-modal-section-title">Panduan & Revisi Ukuran</div>
             
             <div class="manage-modal-img-container">
-              <img alt="Panduan ukuran baju" src="/static/registration/assets/ukuranbaju.jpeg?v=20260911" style="width:193px; height:200px; display:block; margin:0 auto; object-fit:contain; border-radius:6px;"/>
+              <img alt="Panduan ukuran baju" src="/static/registration/assets/ukuranbaju.jpeg?v=20260911" style="width:160px; height:165px; display:block; margin:0 auto; object-fit:contain; border-radius:6px;"/>
             </div>
             
             <!-- JavaScript akan menyuntikkan form ukuran ke dalam container ini -->
