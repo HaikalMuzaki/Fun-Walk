@@ -89,7 +89,7 @@ STUDY_PROGRAM_CHOICES = {
     'KECERDASAN_ARTIFISIAL': 'Kecerdasan Artifisial',
     'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
 }
-VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', '3XL'}
+VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'}
 VALID_GENDERS = {'MALE', 'FEMALE'}
 
 

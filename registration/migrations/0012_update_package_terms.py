@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='ticket',
             name='package_type',
-            field=models.CharField(choices=[('ALUMNI_PACK', 'Paket Premium (Rp 225.000)'), ('STUDENT_PACK', 'Paket Mahasiswa (Rp 125.000)'), ('TICKET_ONLY', 'Paket Basic (Rp 50.000)')], max_length=20),
+            field=models.CharField(choices=[('ALUMNI_PACK', 'Paket Premium (Rp 200.000)'), ('STUDENT_PACK', 'Paket Mahasiswa (Rp 125.000)'), ('TICKET_ONLY', 'Paket Basic (Rp 50.000)')], max_length=20),
         ),
     ]

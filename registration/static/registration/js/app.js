@@ -85,7 +85,7 @@
   const discountPrice = document.querySelector('#discount-price');
   const whatsapp = document.querySelector('#id_whatsapp_number');
   const shirtSizeFields = document.querySelector('#shirt-size-fields');
-  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', '3XL'];
+  const shirtSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'];
   const formatter = new Intl.NumberFormat('id-ID');
   const actionModal = document.querySelector('#actionModal');
   const modalTransactionId = document.querySelector('#modal_tx_id');

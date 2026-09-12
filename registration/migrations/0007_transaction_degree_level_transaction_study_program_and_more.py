@@ -34,6 +34,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='ticket',
             name='tshirt_size',
-            field=models.CharField(choices=[('NONE', 'Tidak Ada Kaos'), ('XS', 'XS'), ('S', 'S'), ('M', 'M'), ('L', 'L'), ('XL', 'XL'), ('XXL', 'XXL'), ('3XL', '3XL')], default='NONE', max_length=10),
+            field=models.CharField(choices=[('NONE', 'Tidak Ada Kaos'), ('XS', 'XS'), ('S', 'S'), ('M', 'M'), ('L', 'L'), ('XL', 'XL'), ('XXL', 'XXL'), ('3XL', '3XL'), ('4XL', '4XL'), ('5XL', '5XL'), ('6XL', '6XL')], default='NONE', max_length=10),
         ),
     ]
