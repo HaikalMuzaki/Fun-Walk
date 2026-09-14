@@ -117,22 +117,12 @@
      <!-- Pesanan hanya bisa dibayar, diedit, atau dibatalkan sebelum masuk ke gateway. -->
      {% if item.raw_status == 'PENDING_PAYMENT' %}
      <div style="display: flex; gap: 10px; margin-top: 15px; flex-direction: column;">
-         {% if payment_gateway_maintenance and manual_payment_enabled %}
-         <a href="{% url 'manual_payment' item.transaction_id %}" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; text-align: center; text-decoration: none; box-sizing: border-box;">
-          Lanjutkan Pembayaran
-         </a>
-         {% elif payment_gateway_maintenance %}
-         <button type="button" disabled style="background-color: #d9d9d9; color: #777; padding: 10px 16px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px;">
-          Pembayaran Sedang Dalam Pemeliharaan
-         </button>
-         {% else %}
          <form action="{% url 'retry_payment' item.transaction_id %}" method="POST" style="margin: 0;">
           {% csrf_token %}
           <button type="submit" style="background-color: #FFC107; color: #000; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-family: inherit; font-size: 14px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
            Lanjutkan Pembayaran
           </button>
          </form>
-         {% endif %}
 
          <button
           type="button"

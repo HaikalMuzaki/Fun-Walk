@@ -681,9 +681,6 @@ def sso_login_callback(request):
 
 @login_required
 def checkout_alumni(request):
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('index')
-
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'ALUMNI_PACK')
@@ -700,9 +697,6 @@ def checkout_alumni(request):
 
 @login_required
 def checkout_mahasiswa(request):
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('index')
-
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
@@ -751,9 +745,6 @@ def checkout_mahasiswa(request):
 
 @login_required
 def checkout_non_paket(request):
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('index')
-
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'TICKET_ONLY')
@@ -804,11 +795,6 @@ def payment_page(request):
         messages.error(request, 'Anda tidak memiliki akses ke transaksi ini.')
         return redirect('history')
 
-    if settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED:
-        return redirect('manual_payment', transaction_id=transaction_obj.id)
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('history')
-
     if transaction_obj.gateway_transaction_id:
         try:
             refresh_transaction_status(transaction_obj)
@@ -852,23 +838,15 @@ def payment_page(request):
             transaction_obj.save(update_fields=['status', 'failed_at'])
         return redirect(finpay_url)
     except ValueError as error:
-        if settings.MANUAL_PAYMENT_ENABLED:
-            messages.warning(request, 'Gateway pembayaran tidak tersedia. Silakan gunakan transfer manual.')
-            return redirect('manual_payment', transaction_id=transaction_obj.id)
-        messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
-        return redirect('history')
+        logger.error(f'Finnet Gateway Error: {str(error)}')
+        messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
 
-    messages.error(request, 'Link pembayaran tidak tersedia. Silakan mulai lagi dari History.')
-    return redirect('history')
+        trx_id = transaction_id if 'transaction_id' in locals() else transaction_obj.id
+        return redirect('manual_payment', transaction_id=trx_id)
 
 
 @login_required
 def retry_payment(request, transaction_id):
-    if settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED:
-        return redirect('manual_payment', transaction_id=transaction_id)
-    if _payment_gateway_is_under_maintenance(request):
-        return redirect('history')
-
     if request.method == 'POST':
         try:
             transaction_obj = Transaction.objects.get(
@@ -925,11 +903,11 @@ def retry_payment(request, transaction_id):
             messages.error(request, 'Transaksi tidak ditemukan atau status pembayaran sudah selesai.')
             return redirect('history')
         except ValueError as error:
-            if settings.MANUAL_PAYMENT_ENABLED:
-                messages.warning(request, 'Gateway pembayaran tidak tersedia. Silakan gunakan transfer manual.')
-                return redirect('manual_payment', transaction_id=transaction_id)
-            messages.error(request, f'Gagal membuat link pembayaran: {str(error)}')
-            return redirect('history')
+            logger.error(f'Finnet Gateway Error: {str(error)}')
+            messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
+
+            trx_id = transaction_id if 'transaction_id' in locals() else transaction_obj.id
+            return redirect('manual_payment', transaction_id=trx_id)
 
     return redirect('history')
 
