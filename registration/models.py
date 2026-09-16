@@ -89,6 +89,7 @@ class Transaction(models.Model):
     gateway_callback_payload = models.JSONField(blank=True, null=True, verbose_name="Payload Callback Gateway")
     paid_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Lunas")
     failed_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Gagal")
+    expired_at = models.DateTimeField(blank=True, null=True, verbose_name="Waktu Ditandai Kedaluwarsa")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

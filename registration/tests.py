@@ -810,7 +810,8 @@ class PaymentStatusFlowTests(TestCase):
         )
         Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Status User',
+            first_name='Status',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
@@ -860,6 +861,30 @@ class PaymentStatusFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(transaction.status, 'PAID')
 
+    def test_successful_callback_corrects_transaction_previously_marked_expired(self):
+        transaction = self._create_transaction()
+        expired_at = timezone.now()
+        transaction.status = 'EXPIRED'
+        transaction.failed_at = expired_at
+        transaction.expired_at = expired_at
+        transaction.save(update_fields=['status', 'failed_at', 'expired_at'])
+
+        response = self.client.post(
+            '/callback/payment/',
+            data=json.dumps({
+                'idempotency_key': transaction.idempotency_key,
+                'transaction_id': f'gateway-{transaction.id}',
+                'status': 'success',
+            }),
+            content_type='application/json',
+            HTTP_HOST='127.0.0.1',
+        )
+
+        transaction.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(transaction.status, 'PAID')
+        self.assertIsNotNone(transaction.paid_at)
+
     @patch('registration.views.refresh_transaction_status')
     def test_history_refreshes_pending_gateway_transactions(self, mocked_refresh_transaction_status):
         transaction = self._create_transaction()
@@ -903,7 +928,8 @@ class PaymentStatusFlowTests(TestCase):
         )
         Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Gateway Redirect User',
+            first_name='Gateway Redirect',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),

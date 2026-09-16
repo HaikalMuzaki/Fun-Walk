@@ -284,6 +284,14 @@ def is_terminal_local_status(status):
     return status in {'PAID', 'FAILED', 'EXPIRED', 'CANCELLED'}
 
 
+def can_apply_gateway_status(transaction_obj, next_status):
+    """Allow a trusted PAID response to correct a locally expired transaction."""
+    return (
+        not is_terminal_local_status(transaction_obj.status)
+        or (transaction_obj.status == 'EXPIRED' and next_status == 'PAID')
+    )
+
+
 def build_initiate_payload(transaction_obj, request, package_label):
     raw_phone = transaction_obj.whatsapp_number
     e164_phone = f"+62{raw_phone.lstrip('0')}"
@@ -478,11 +486,12 @@ def apply_status_response(transaction_obj, response_data):
     )
     transaction_obj.gateway_response_payload = response_data
 
-    if gateway_status and not is_terminal_local_status(transaction_obj.status):
-        transaction_obj.status = map_gateway_status_to_local(gateway_status)
-        if transaction_obj.status == 'PAID':
+    next_status = map_gateway_status_to_local(gateway_status)
+    if gateway_status and can_apply_gateway_status(transaction_obj, next_status):
+        transaction_obj.status = next_status
+        if next_status == 'PAID':
             transaction_obj.paid_at = transaction_obj.paid_at or timezone.now()
-        elif transaction_obj.status == 'FAILED':
+        elif next_status == 'FAILED':
             transaction_obj.failed_at = transaction_obj.failed_at or timezone.now()
 
     transaction_obj.save(
@@ -531,7 +540,7 @@ def apply_callback_payload(transaction_obj, payload):
     transaction_obj.gateway_callback_payload = payload
 
     next_status = map_gateway_status_to_local(gateway_status)
-    if not is_terminal_local_status(transaction_obj.status):
+    if can_apply_gateway_status(transaction_obj, next_status):
         transaction_obj.status = next_status
         if next_status == 'PAID':
             transaction_obj.paid_at = transaction_obj.paid_at or timezone.now()

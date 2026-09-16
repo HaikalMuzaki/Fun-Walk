@@ -190,7 +190,7 @@ class TransactionAdmin(admin.ModelAdmin):
     readonly_fields = (
         'transaction_id', 'idempotency_key', 'total_amount', 'created_at',
         'gateway_transaction_id', 'gateway_status', 'payment_channel',
-        'payment_type', 'payment_redirect_url', 'paid_at', 'failed_at',
+        'payment_type', 'payment_redirect_url', 'paid_at', 'failed_at', 'expired_at',
         'gateway_response_payload', 'gateway_callback_payload',
         'manual_payment_submitted_at', 'manual_payment_proof_link',
     )
@@ -206,7 +206,7 @@ class TransactionAdmin(admin.ModelAdmin):
         ('Detail Pembayaran (Gateway)', {
             'fields': (
                 'gateway_transaction_id', 'gateway_status', 'payment_channel',
-                'payment_type', 'paid_at', 'failed_at', 'payment_redirect_url'
+                'payment_type', 'paid_at', 'failed_at', 'expired_at', 'payment_redirect_url'
             )
         }),
         ('Bukti Pembayaran Manual', {

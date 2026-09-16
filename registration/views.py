@@ -27,6 +27,7 @@ from .payment_gateway import (
     apply_callback_payload,
     initiate_payment,
     is_terminal_local_status,
+    map_gateway_status_to_local,
     refresh_transaction_status,
     verify_callback_status_if_needed,
 )
@@ -419,7 +420,9 @@ def _sync_pending_transactions_for_user(user):
 
 
 def _expire_transaction_if_overdue(transaction_obj, now=None):
-    if transaction_obj.status not in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
+    # Setelah gateway membuat payment page, gateway menjadi sumber status pembayaran.
+    # Jangan menandai pesanan sebagai expired hanya karena callback Finnet terlambat.
+    if transaction_obj.status != 'PENDING_PAYMENT':
         return False
 
     now = now or timezone.now()
@@ -431,8 +434,9 @@ def _expire_transaction_if_overdue(transaction_obj, now=None):
 
     transaction_obj.status = 'EXPIRED'
     transaction_obj.failed_at = now
+    transaction_obj.expired_at = now
     transaction_obj.payment_redirect_url = ''
-    transaction_obj.save(update_fields=['status', 'failed_at', 'payment_redirect_url'])
+    transaction_obj.save(update_fields=['status', 'failed_at', 'expired_at', 'payment_redirect_url'])
     return True
 
 
@@ -986,11 +990,20 @@ def payment_callback(request):
         except Transaction.DoesNotExist:
             return JsonResponse({'error': 'Transaksi tidak ditemukan'}, status=404)
 
+        next_status = status.strip().lower()
+        next_local_status = map_gateway_status_to_local(next_status)
+        current_gateway_status = transaction_obj.gateway_status.strip().lower() if transaction_obj.gateway_status else ''
+
+        # Pembayaran sukses dari gateway tetap valid walaupun aplikasi sebelumnya
+        # sempat menandai transaksi expired karena callback datang terlambat.
+        if transaction_obj.status == 'EXPIRED' and next_local_status == 'PAID':
+            apply_callback_payload(transaction_obj, payload)
+            verify_callback_status_if_needed(transaction_obj)
+            return JsonResponse({'message': 'Pembayaran sukses dikoreksi dari status kedaluwarsa.'}, status=200)
+
         if _expire_transaction_if_overdue(transaction_obj):
             return JsonResponse({'message': 'Transaksi sudah kedaluwarsa.'}, status=200)
 
-        next_status = status.strip().lower()
-        current_gateway_status = transaction_obj.gateway_status.strip().lower() if transaction_obj.gateway_status else ''
         if current_gateway_status == next_status:
             return JsonResponse({'message': 'Status transaksi sudah sesuai.'}, status=200)
         if is_terminal_local_status(transaction_obj.status):
