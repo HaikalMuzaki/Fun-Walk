@@ -26,6 +26,20 @@ services:
     volumes:
       - media_data_prod:/app/media
 
+  payment-scheduler-prod:
+    build: .
+    command: python manage.py maintain_payments --interval 60 --reconcile-interval 3600
+    env_file:
+      - .env.prod
+    environment:
+      - DB_NAME=funwalk_prod
+      - DB_USER=admin
+      - DB_PASSWORD=supersecretpassword
+      - DB_HOST=db-prod
+    depends_on:
+      - db-prod
+    restart: unless-stopped
+
   # ================= STAGING =================
   db-staging:
     image: postgres:15
@@ -52,6 +66,20 @@ services:
       - db-staging
     volumes:
       - media_data_staging:/app/media
+
+  payment-scheduler-staging:
+    build: .
+    command: python manage.py maintain_payments --interval 60 --reconcile-interval 3600
+    env_file:
+      - .env.staging
+    environment:
+      - DB_NAME=funwalk_staging
+      - DB_USER=admin
+      - DB_PASSWORD=supersecretpassword
+      - DB_HOST=db-staging
+    depends_on:
+      - db-staging
+    restart: unless-stopped
 
 volumes:
   postgres_data_prod:

@@ -420,9 +420,7 @@ def _sync_pending_transactions_for_user(user):
 
 
 def _expire_transaction_if_overdue(transaction_obj, now=None):
-    # Setelah gateway membuat payment page, gateway menjadi sumber status pembayaran.
-    # Jangan menandai pesanan sebagai expired hanya karena callback Finnet terlambat.
-    if transaction_obj.status != 'PENDING_PAYMENT':
+    if transaction_obj.status not in {'PENDING_PAYMENT', 'PENDING_CONFIRMATION'}:
         return False
 
     now = now or timezone.now()

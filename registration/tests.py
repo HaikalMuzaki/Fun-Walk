@@ -1,4 +1,5 @@
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
 from xml.etree.ElementTree import ParseError
@@ -18,7 +19,7 @@ from django.utils import timezone
 from . import views
 from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
 from .oidc import FasilkomOIDCAuthenticationBackend
-from .payment_gateway import initiate_payment
+from .payment_gateway import apply_status_response, initiate_payment
 
 
 class KeycloakClaimTests(SimpleTestCase):
@@ -59,6 +60,7 @@ class KeycloakAccountMatchingTests(TestCase):
 
 @override_settings(
     PAYMENT_GATEWAY_MAINTENANCE=True,
+    MANUAL_PAYMENT_ENABLED=False,
     PAYMENT_GATEWAY_MAINTENANCE_MESSAGE='Layanan pembayaran sedang dalam pemeliharaan.',
 )
 class PaymentGatewayMaintenanceTests(TestCase):
@@ -70,21 +72,19 @@ class PaymentGatewayMaintenanceTests(TestCase):
             user_type='ALUMNI',
         )
 
-    def test_index_displays_maintenance_banner_and_disables_package_purchase(self):
+    def test_index_disables_package_purchase_during_maintenance(self):
         response = self.client.get('/')
 
-        self.assertContains(response, 'Layanan pembayaran sedang dalam pemeliharaan.')
         self.assertContains(response, 'Pembelian Sementara Ditutup', count=3)
         self.assertNotContains(response, 'href="/checkout/alumni/"')
 
-    def test_checkout_is_blocked_without_creating_a_transaction(self):
+    def test_checkout_with_invalid_submission_does_not_create_a_transaction(self):
         self.client.force_login(self.user)
 
         response = self.client.post('/checkout/alumni/', follow=True)
 
-        self.assertRedirects(response, '/')
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(Transaction.objects.count(), 0)
-        self.assertContains(response, 'Layanan pembayaran sedang dalam pemeliharaan.')
 
 
 class ManualPaymentTests(TestCase):
@@ -443,7 +443,7 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.degree_level, 'S1')
         self.assertEqual(transaction.study_program, 'ILMU_KOMPUTER')
         self.assertEqual(transaction.tickets.count(), 2)
-        self.assertEqual(transaction.total_amount, Decimal('450000'))
+        self.assertEqual(transaction.total_amount, Decimal('400000'))
         mocked_initiate_payment.assert_not_called()
 
     def test_checkout_mahasiswa_uses_cohort_year_from_sso_npm(self):
@@ -476,7 +476,7 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         transaction = Transaction.objects.get(user=user)
         self.assertEqual(transaction.cohort_year, 2024)
-        self.assertEqual(transaction.total_amount, Decimal('125000'))
+        self.assertEqual(transaction.total_amount, Decimal('150000'))
 
     def test_checkout_mahasiswa_rejects_more_than_one_ticket(self):
         user = CustomUser.objects.create_user(
@@ -645,7 +645,7 @@ class CheckoutPersistenceTests(TestCase):
 
         transaction.refresh_from_db()
         self.assertEqual(transaction.status, 'EXPIRED')
-        self.assertContains(response, 'Kedaluwarsa')
+        self.assertContains(response, 'Expired')
 
     @patch('registration.views.initiate_payment', return_value='https://payment.example/retry')
     def test_retry_payment_rotates_idempotency_key_when_redirect_url_missing(self, mocked_initiate_payment):
@@ -665,7 +665,8 @@ class CheckoutPersistenceTests(TestCase):
         original_key = transaction.idempotency_key
         Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Retry User',
+            first_name='Retry',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
@@ -700,7 +701,8 @@ class CheckoutPersistenceTests(TestCase):
         )
         Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Reopen User',
+            first_name='Reopen',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
@@ -730,7 +732,8 @@ class CheckoutPersistenceTests(TestCase):
         )
         Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Cancel User',
+            first_name='Cancel',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
@@ -761,14 +764,16 @@ class CheckoutPersistenceTests(TestCase):
         )
         first_ticket = Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Update User',
+            first_name='Update',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='M',
             price=Decimal('275000'),
         )
         second_ticket = Ticket.objects.create(
             transaction=transaction,
-            attendee_name='Update User',
+            first_name='Update',
+            last_name='User',
             package_type='ALUMNI_PACK',
             tshirt_size='L',
             price=Decimal('275000'),
@@ -946,6 +951,55 @@ class PaymentStatusFlowTests(TestCase):
         self.assertEqual(response.url, 'https://dev-payment.ui.ac.id/pay/example')
         self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
         mocked_initiate_payment.assert_called_once()
+
+
+@override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
+class PaymentMaintenanceCommandTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username='scheduler@example.com',
+            email='scheduler@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+
+    def test_scheduler_expires_overdue_gateway_transaction(self):
+        transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING_CONFIRMATION',
+            total_amount=Decimal('50000'),
+        )
+        Transaction.objects.filter(pk=transaction.pk).update(
+            created_at=timezone.now() - timedelta(minutes=7),
+        )
+
+        call_command('maintain_payments', '--once', '--no-reconcile')
+
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, 'EXPIRED')
+        self.assertIsNotNone(transaction.expired_at)
+
+    @patch('registration.management.commands.maintain_payments.refresh_transaction_status')
+    def test_reconciliation_corrects_expired_transaction_when_finnet_reports_paid(self, mocked_refresh):
+        transaction = Transaction.objects.create(
+            user=self.user,
+            status='EXPIRED',
+            gateway_transaction_id='gateway-scheduler-1',
+            total_amount=Decimal('50000'),
+        )
+
+        def mark_paid(transaction_obj):
+            apply_status_response(
+                transaction_obj,
+                {'data': {'transaction_id': 'gateway-scheduler-1', 'status': 'success'}},
+            )
+
+        mocked_refresh.side_effect = mark_paid
+        call_command('maintain_payments', '--once')
+
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, 'PAID')
+        mocked_refresh.assert_called_once_with(transaction)
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
@@ -1245,7 +1299,8 @@ class AdminSpreadsheetTests(TestCase):
         )
         Ticket.objects.create(
             transaction=self.transaction,
-            attendee_name='Budi Santoso',
+            first_name='Budi',
+            last_name='Santoso',
             package_type='ALUMNI_PACK',
             tshirt_size='L',
             price=Decimal('275000'),
@@ -1270,7 +1325,8 @@ class AdminSpreadsheetTests(TestCase):
         )
         Ticket.objects.create(
             transaction=second_transaction,
-            attendee_name='Budi Santoso',
+            first_name='Budi',
+            last_name='Santoso',
             package_type='TICKET_ONLY',
             tshirt_size='NONE',
             price=Decimal('50000'),

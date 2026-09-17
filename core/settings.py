@@ -34,6 +34,9 @@ DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true' if DJANGO_ENV != 'production' else 'false').lower() == 'true'
 
 PAYMENT_EXPIRY_MINUTES = int(os.environ.get('PAYMENT_EXPIRY_MINUTES', '6'))
+PAYMENT_RECONCILIATION_LOOKBACK_DAYS = int(
+    os.environ.get('PAYMENT_RECONCILIATION_LOOKBACK_DAYS', '1')
+)
 PAYMENT_GATEWAY_MAINTENANCE = os.environ.get('PAYMENT_GATEWAY_MAINTENANCE', 'false').lower() == 'true'
 MANUAL_PAYMENT_ENABLED = os.environ.get('MANUAL_PAYMENT_ENABLED', 'false').lower() == 'true'
 PAYMENT_GATEWAY_MAINTENANCE_MESSAGE = os.environ.get(
