@@ -1555,6 +1555,14 @@ body {
   border-radius: 0.2rem;
 }
 
+.size-chart-reminder {
+  margin: 0.55rem auto 0;
+  color: #d80000;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .checkout-summary {
   margin: 1.4rem 0 0.9rem;
 }
