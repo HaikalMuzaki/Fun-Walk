@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <link href="{% static 'registration/css/style.css' %}?v=20260910-manual-payment-v2" rel="stylesheet"/>
+  <link href="{% static 'registration/css/style.css' %}?v=20260918-history-size-warning" rel="stylesheet"/>
  </head>
  <body>
   <header class="header">
@@ -105,6 +105,9 @@
       </div>
       {% endif %}
      </div>
+     {% if item.raw_status == 'PENDING_PAYMENT' and item.has_tshirt_sizes %}
+     <p class="history-shirt-warning">Ukuran kaos tidak dapat diganti ketika sudah melanjutkan pembayaran.</p>
+     {% endif %}
      <div class="history-footer">
       <span class="history-date">
        {{ item.created_at }}

@@ -1004,6 +1004,13 @@ body {
   width: 100%;
 }
 
+.history-shirt-warning {
+  margin: 0.45rem 0 0;
+  color: #d80000;
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
 .detail-row {
   display: grid;
   grid-template-columns: 6.5rem 0.8rem minmax(0, 1fr);
