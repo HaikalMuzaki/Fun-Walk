@@ -110,6 +110,11 @@ def _payment_gateway_is_under_maintenance(request):
     return True
 
 
+def _manual_payment_only_mode():
+    """Keep checkout open while routing new payments away from Finnet."""
+    return settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED
+
+
 def _validate_manual_payment_proof(upload):
     if upload is None:
         raise ValueError('Bukti pembayaran wajib diunggah.')
@@ -797,6 +802,9 @@ def payment_page(request):
         messages.error(request, 'Anda tidak memiliki akses ke transaksi ini.')
         return redirect('history')
 
+    if _manual_payment_only_mode() and not transaction_obj.gateway_transaction_id:
+        return redirect('manual_payment', transaction_id=transaction_obj.id)
+
     if transaction_obj.gateway_transaction_id:
         try:
             refresh_transaction_status(transaction_obj)
@@ -856,6 +864,9 @@ def retry_payment(request, transaction_id):
                 user=request.user,
                 status__in=['PENDING_PAYMENT', 'PENDING_CONFIRMATION'],
             )
+
+            if _manual_payment_only_mode() and not transaction_obj.gateway_transaction_id:
+                return redirect('manual_payment', transaction_id=transaction_obj.id)
 
             if _expire_transaction_if_overdue(transaction_obj):
                 messages.error(request, 'Pembayaran ini sudah kedaluwarsa setelah 6 menit.')

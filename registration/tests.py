@@ -154,6 +154,19 @@ class ManualPaymentTests(TestCase):
         self.assertEqual(self.transaction.status, 'PENDING_CONFIRMATION')
         self.assertContains(response, 'Menunggu Konfirmasi')
 
+    @override_settings(PAYMENT_GATEWAY_MAINTENANCE=True, MANUAL_PAYMENT_ENABLED=True)
+    @patch('registration.views.initiate_payment')
+    def test_manual_only_mode_routes_new_payment_away_from_finnet(self, mocked_initiate_payment):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            f'/history/retry-payment/{self.transaction.id}/',
+            HTTP_HOST='testserver',
+        )
+
+        self.assertRedirects(response, f'/payment/manual/{self.transaction.id}/')
+        mocked_initiate_payment.assert_not_called()
+
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class LoginRegistrationTests(TestCase):
