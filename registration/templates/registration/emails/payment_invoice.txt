@@ -1,0 +1,12 @@
+Halo {{ customer_name }},
+
+Pembayaran Anda untuk Dies Natalis ke-40 Fasilkom UI telah berhasil kami terima.
+
+Nomor transaksi: {{ transaction_id }}
+Paket: {{ packages }}
+Jumlah tiket: {{ ticket_count }}
+Total pembayaran: {{ total_amount }}
+Waktu pembayaran: {{ paid_at }}
+Metode pembayaran: {{ payment_method }}
+
+Simpan email ini sebagai bukti pembayaran.

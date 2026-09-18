@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from registration.invoices import send_payment_invoice
 from registration.models import Transaction
 from registration.payment_gateway import refresh_transaction_status
 from registration.views import _expire_transaction_if_overdue
@@ -75,12 +76,28 @@ class Command(BaseCommand):
 
         return checked_count
 
+    def _retry_unsent_invoices(self):
+        retry_hours = max(1, int(getattr(settings, 'PAYMENT_INVOICE_RETRY_HOURS', 24)))
+        since = timezone.now() - timedelta(hours=retry_hours)
+        transactions = Transaction.objects.filter(
+            status='PAID',
+            paid_at__gte=since,
+            invoice_sent_at__isnull=True,
+        )
+        sent_count = 0
+        for transaction_obj in transactions.iterator():
+            if send_payment_invoice(transaction_obj):
+                sent_count += 1
+        return sent_count
+
     def _run_cycle(self, reconcile):
         now = timezone.now()
         expired_count = self._expire_overdue_transactions(now)
         checked_count = self._reconcile_gateway_statuses() if reconcile else 0
+        invoice_count = self._retry_unsent_invoices() if reconcile else 0
         self.stdout.write(
-            f'Payment maintenance complete: expired={expired_count}, reconciled={checked_count}.'
+            'Payment maintenance complete: '
+            f'expired={expired_count}, reconciled={checked_count}, invoices_sent={invoice_count}.'
         )
 
     def handle(self, *args, **options):

@@ -12,6 +12,8 @@ from django.urls import reverse
 from django.utils import timezone
 from requests.exceptions import RequestException
 
+from .invoices import send_payment_invoice
+
 logger = logging.getLogger(__name__)
 
 PAYMENT_GATEWAY_PATH = '/api/v1/gateway/payments'
@@ -349,7 +351,6 @@ def store_initiate_response(transaction_obj, response_data, redirect_url):
         ]
     )
 
-
 def _request_with_base_url_failover(method, path, headers, body_bytes=None, timeout=30):
     config = get_payment_gateway_config()
     request_errors = []
@@ -507,6 +508,9 @@ def apply_status_response(transaction_obj, response_data):
         ]
     )
 
+    if transaction_obj.status == 'PAID':
+        send_payment_invoice(transaction_obj)
+
 
 def refresh_transaction_status(transaction_obj):
     response_data = fetch_payment_status(transaction_obj)
@@ -559,6 +563,9 @@ def apply_callback_payload(transaction_obj, payload):
             'failed_at',
         ]
     )
+
+    if transaction_obj.status == 'PAID':
+        send_payment_invoice(transaction_obj)
 
 
 def verify_callback_status_if_needed(transaction_obj):

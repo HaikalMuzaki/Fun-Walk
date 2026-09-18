@@ -1,4 +1,5 @@
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core import mail
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
@@ -18,6 +19,7 @@ from django.utils import timezone
 
 from . import views
 from .models import CustomUser, Ticket, Transaction, TransactionSpreadsheetBackup
+from .invoices import send_payment_invoice
 from .oidc import FasilkomOIDCAuthenticationBackend
 from .payment_gateway import apply_status_response, initiate_payment
 
@@ -953,6 +955,50 @@ class PaymentStatusFlowTests(TestCase):
         mocked_initiate_payment.assert_called_once()
 
 
+@override_settings(
+    MAILERS={
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    },
+    DEFAULT_FROM_EMAIL='noreply@example.com',
+)
+class PaymentInvoiceTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username='invoice@example.com',
+            email='invoice@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.transaction = Transaction.objects.create(
+            user=self.user,
+            status='PAID',
+            paid_at=timezone.now(),
+            total_amount=Decimal('200000'),
+            payment_channel='BNI Virtual Account',
+        )
+        Ticket.objects.create(
+            transaction=self.transaction,
+            first_name='Invoice',
+            last_name='User',
+            package_type='ALUMNI_PACK',
+            tshirt_size='M',
+            price=Decimal('200000'),
+        )
+
+    def test_sends_payment_invoice_once(self):
+        self.assertTrue(send_payment_invoice(self.transaction))
+        self.assertFalse(send_payment_invoice(self.transaction))
+
+        self.transaction.refresh_from_db()
+        self.assertIsNotNone(self.transaction.invoice_sent_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['invoice@example.com'])
+        self.assertIn(self.transaction.transaction_id, mail.outbox[0].subject)
+        self.assertIn('Rp200.000', mail.outbox[0].body)
+
+
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class PaymentMaintenanceCommandTests(TestCase):
     def setUp(self):
@@ -1000,6 +1046,19 @@ class PaymentMaintenanceCommandTests(TestCase):
         transaction.refresh_from_db()
         self.assertEqual(transaction.status, 'PAID')
         mocked_refresh.assert_called_once_with(transaction)
+
+    @patch('registration.management.commands.maintain_payments.send_payment_invoice', return_value=True)
+    def test_reconciliation_retries_recent_unsent_paid_invoice(self, mocked_send_invoice):
+        transaction = Transaction.objects.create(
+            user=self.user,
+            status='PAID',
+            paid_at=timezone.now(),
+            total_amount=Decimal('50000'),
+        )
+
+        call_command('maintain_payments', '--once')
+
+        mocked_send_invoice.assert_called_once_with(transaction)
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

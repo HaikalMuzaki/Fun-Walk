@@ -214,6 +214,7 @@ MAILERS = {
     },
 }
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'dn@cs.ui.ac.id')
+PAYMENT_INVOICE_RETRY_HOURS = int(os.environ.get('PAYMENT_INVOICE_RETRY_HOURS', '24'))
 
 LOGGING = {
     'version': 1,

@@ -10,6 +10,7 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
+from .invoices import send_payment_invoice
 from .models import (
     CustomUser,
     EventInfo,
@@ -190,7 +191,7 @@ class TransactionAdmin(admin.ModelAdmin):
     readonly_fields = (
         'transaction_id', 'idempotency_key', 'total_amount', 'created_at',
         'gateway_transaction_id', 'gateway_status', 'payment_channel',
-        'payment_type', 'payment_redirect_url', 'paid_at', 'failed_at', 'expired_at',
+        'payment_type', 'payment_redirect_url', 'paid_at', 'invoice_sent_at', 'failed_at', 'expired_at',
         'gateway_response_payload', 'gateway_callback_payload',
         'manual_payment_submitted_at', 'manual_payment_proof_link',
     )
@@ -206,7 +207,7 @@ class TransactionAdmin(admin.ModelAdmin):
         ('Detail Pembayaran (Gateway)', {
             'fields': (
                 'gateway_transaction_id', 'gateway_status', 'payment_channel',
-                'payment_type', 'paid_at', 'failed_at', 'expired_at', 'payment_redirect_url'
+                'payment_type', 'paid_at', 'invoice_sent_at', 'failed_at', 'expired_at', 'payment_redirect_url'
             )
         }),
         ('Bukti Pembayaran Manual', {
@@ -319,6 +320,8 @@ class TransactionAdmin(admin.ModelAdmin):
         elif obj.status == 'FAILED' and not obj.failed_at:
             obj.failed_at = timezone.now()
         super().save_model(request, obj, form, change)
+        if obj.status == 'PAID':
+            send_payment_invoice(obj)
 
     def responses_view(self, request):
         rows, transaction_count = _build_transaction_export_rows()
