@@ -164,8 +164,22 @@ class ManualPaymentTests(TestCase):
             HTTP_HOST='testserver',
         )
 
+        self.transaction.refresh_from_db()
         self.assertRedirects(response, f'/payment/manual/{self.transaction.id}/')
+        self.assertEqual(self.transaction.payment_channel, 'MANUAL_TRANSFER_BNI')
         mocked_initiate_payment.assert_not_called()
+
+    def test_scheduler_does_not_expire_manual_order_waiting_for_proof(self):
+        self.transaction.payment_channel = 'MANUAL_TRANSFER_BNI'
+        self.transaction.save(update_fields=['payment_channel'])
+        Transaction.objects.filter(pk=self.transaction.pk).update(
+            created_at=timezone.now() - timedelta(minutes=7),
+        )
+
+        call_command('maintain_payments', '--once', '--no-reconcile')
+
+        self.transaction.refresh_from_db()
+        self.assertEqual(self.transaction.status, 'PENDING_PAYMENT')
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

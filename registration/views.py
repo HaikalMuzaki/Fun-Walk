@@ -115,6 +115,17 @@ def _manual_payment_only_mode():
     return settings.PAYMENT_GATEWAY_MAINTENANCE and settings.MANUAL_PAYMENT_ENABLED
 
 
+def _prepare_manual_transfer(transaction_obj):
+    """Exclude a manual order from gateway expiry before proof is uploaded."""
+    if transaction_obj.payment_channel == 'MANUAL_TRANSFER_BNI':
+        return
+
+    transaction_obj.payment_channel = 'MANUAL_TRANSFER_BNI'
+    transaction_obj.payment_type = 'MANUAL_TRANSFER'
+    transaction_obj.gateway_status = 'manual_awaiting_proof'
+    transaction_obj.save(update_fields=['payment_channel', 'payment_type', 'gateway_status'])
+
+
 def _validate_manual_payment_proof(upload):
     if upload is None:
         raise ValueError('Bukti pembayaran wajib diunggah.')
@@ -803,6 +814,7 @@ def payment_page(request):
         return redirect('history')
 
     if _manual_payment_only_mode() and not transaction_obj.gateway_transaction_id:
+        _prepare_manual_transfer(transaction_obj)
         return redirect('manual_payment', transaction_id=transaction_obj.id)
 
     if transaction_obj.gateway_transaction_id:
@@ -866,6 +878,7 @@ def retry_payment(request, transaction_id):
             )
 
             if _manual_payment_only_mode() and not transaction_obj.gateway_transaction_id:
+                _prepare_manual_transfer(transaction_obj)
                 return redirect('manual_payment', transaction_id=transaction_obj.id)
 
             if _expire_transaction_if_overdue(transaction_obj):
