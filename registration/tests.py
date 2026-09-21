@@ -539,6 +539,130 @@ class CheckoutPersistenceTests(TestCase):
         self.assertContains(response, 'hanya dapat dibeli untuk 1 tiket')
         self.assertFalse(Transaction.objects.filter(user=user).exists())
 
+    def test_checkout_alumni_allows_sistem_informasi_ekstensi(self):
+        user = CustomUser.objects.create_user(
+            username='alumni_ekstensi@gmail.com',
+            email='alumni_ekstensi@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/alumni/',
+            {
+                'first_name': 'Budi',
+                'last_name': 'Ekstensi',
+                'gender': 'MALE',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2020',
+                'degree_level': 'S1',
+                'study_program': 'SISTEM_INFORMASI_EKSTENSI',
+                'ticket_quantity': '1',
+                'shirt_size_1': 'L',
+                'accept_terms': 'on',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(user=user)
+        self.assertEqual(transaction.study_program, 'SISTEM_INFORMASI_EKSTENSI')
+        self.assertEqual(transaction.get_study_program_display(), 'Sistem Informasi (Ekstensi)')
+
+    def test_checkout_non_paket_allows_sistem_informasi_ekstensi_label(self):
+        user = CustomUser.objects.create_user(
+            username='nonpaket_ekstensi@gmail.com',
+            email='nonpaket_ekstensi@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/tiket-saja/',
+            {
+                'first_name': 'Siti',
+                'last_name': 'Ekstensi',
+                'gender': 'FEMALE',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2019',
+                'degree_level': 'S1',
+                'study_program': 'Sistem Informasi (Ekstensi)',
+                'ticket_quantity': '1',
+                'accept_terms': 'on',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(user=user)
+        self.assertEqual(transaction.study_program, 'SISTEM_INFORMASI_EKSTENSI')
+        self.assertEqual(transaction.get_study_program_display(), 'Sistem Informasi (Ekstensi)')
+
+    def test_checkout_mahasiswa_rejects_sistem_informasi_ekstensi(self):
+        user = CustomUser.objects.create_user(
+            username='2400000099',
+            email='mhs_reject@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2400000099',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            '/checkout/mahasiswa/',
+            {
+                'first_name': 'Mahasiswa',
+                'last_name': 'Aktif',
+                'gender': 'MALE',
+                'whatsapp_number': '081234567890',
+                'cohort_year': '2024',
+                'degree_level': 'S1',
+                'study_program': 'SISTEM_INFORMASI_EKSTENSI',
+                'ticket_quantity': '1',
+                'shirt_size_1': 'M',
+                'accept_terms': 'on',
+            },
+            HTTP_HOST='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Program studi tidak tersedia untuk Paket Mahasiswa Aktif.')
+        self.assertFalse(Transaction.objects.filter(user=user).exists())
+
+    def test_study_program_template_options(self):
+        user_alumni = CustomUser.objects.create_user(
+            username='view_alumni@gmail.com',
+            email='view_alumni@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user_alumni)
+
+        # Alumni checkout should include Sistem Informasi (Ekstensi)
+        res_alumni = self.client.get('/checkout/alumni/', HTTP_HOST='127.0.0.1')
+        self.assertContains(res_alumni, 'value="SISTEM_INFORMASI_EKSTENSI"')
+        self.assertContains(res_alumni, 'Sistem Informasi (Ekstensi)')
+
+        # Non-paket checkout should include Sistem Informasi (Ekstensi)
+        res_non_paket = self.client.get('/checkout/tiket-saja/', HTTP_HOST='127.0.0.1')
+        self.assertContains(res_non_paket, 'value="SISTEM_INFORMASI_EKSTENSI"')
+        self.assertContains(res_non_paket, 'Sistem Informasi (Ekstensi)')
+
+        # Mahasiswa checkout should NOT include Sistem Informasi (Ekstensi)
+        user_student = CustomUser.objects.create_user(
+            username='2400000088',
+            email='view_mhs@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2400000088',
+        )
+        self.client.force_login(user_student)
+        res_mhs = self.client.get('/checkout/mahasiswa/', HTTP_HOST='127.0.0.1')
+        self.assertNotContains(res_mhs, 'value="SISTEM_INFORMASI_EKSTENSI"')
+        self.assertNotContains(res_mhs, 'Sistem Informasi (Ekstensi)')
+
     def test_dosen_checkout_hides_and_does_not_require_academic_fields(self):
         user = CustomUser.objects.create_user(
             username='dosen@ui.ac.id',

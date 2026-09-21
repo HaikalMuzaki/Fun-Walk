@@ -89,6 +89,7 @@ STUDY_PROGRAM_CHOICES = {
     'SISTEM_INFORMASI': 'Sistem Informasi',
     'KECERDASAN_ARTIFISIAL': 'Kecerdasan Artifisial',
     'TEKNOLOGI_INFORMASI': 'Teknologi Informasi',
+    'SISTEM_INFORMASI_EKSTENSI': 'Sistem Informasi (Ekstensi)',
 }
 VALID_TSHIRT_SIZES = {'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'}
 VALID_GENDERS = {'MALE', 'FEMALE'}
@@ -223,6 +224,8 @@ def _parse_study_program(value):
         label.upper().replace(' ', '_'): code
         for code, label in STUDY_PROGRAM_CHOICES.items()
     }
+    for code, label in STUDY_PROGRAM_CHOICES.items():
+        label_to_code[label.upper().replace(' ', '_').replace('(', '').replace(')', '')] = code
     normalized_value = label_to_code.get(normalized_value, normalized_value)
     if normalized_value not in STUDY_PROGRAM_CHOICES:
         raise ValueError('Program studi wajib dipilih dari opsi yang tersedia.')
@@ -471,6 +474,8 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         )
         degree_level = _parse_degree_level(request.POST.get('degree_level'))
         study_program = _parse_study_program(request.POST.get('study_program'))
+        if package_type == 'STUDENT_PACK' and study_program == 'SISTEM_INFORMASI_EKSTENSI':
+            raise ValueError('Program studi tidak tersedia untuk Paket Mahasiswa Aktif.')
     quantity_value = (request.POST.get('ticket_quantity') or '').strip()
     if not quantity_value:
         raise ValueError('Jumlah tiket wajib dipilih.')
@@ -863,8 +868,7 @@ def payment_page(request):
         logger.error(f'Finnet Gateway Error: {str(error)}')
         messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
 
-        trx_id = transaction_id if 'transaction_id' in locals() else transaction_obj.id
-        return redirect('manual_payment', transaction_id=trx_id)
+        return redirect('manual_payment', transaction_id=transaction_obj.id)
 
 
 @login_required
@@ -932,8 +936,7 @@ def retry_payment(request, transaction_id):
             logger.error(f'Finnet Gateway Error: {str(error)}')
             messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
 
-            trx_id = transaction_id if 'transaction_id' in locals() else transaction_obj.id
-            return redirect('manual_payment', transaction_id=trx_id)
+            return redirect('manual_payment', transaction_id=transaction_id)
 
     return redirect('history')
 

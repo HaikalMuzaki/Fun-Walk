@@ -41,6 +41,7 @@ class Transaction(models.Model):
         ('SISTEM_INFORMASI', 'Sistem Informasi'),
         ('KECERDASAN_ARTIFISIAL', 'Kecerdasan Artifisial'),
         ('TEKNOLOGI_INFORMASI', 'Teknologi Informasi'),
+        ('SISTEM_INFORMASI_EKSTENSI', 'Sistem Informasi (Ekstensi)'),
     ]
     STATUS_CHOICES = [
         ('PENDING_PAYMENT', 'Menunggu Pembayaran'),
