@@ -472,7 +472,7 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(transaction.degree_level, 'S1')
         self.assertEqual(transaction.study_program, 'ILMU_KOMPUTER')
         self.assertEqual(transaction.tickets.count(), 2)
-        self.assertEqual(transaction.total_amount, Decimal('400000'))
+        self.assertEqual(transaction.total_amount, Decimal('500000'))
         mocked_initiate_payment.assert_not_called()
 
     def test_checkout_mahasiswa_uses_cohort_year_from_sso_npm(self):

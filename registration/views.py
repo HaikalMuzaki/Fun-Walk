@@ -522,7 +522,7 @@ def _create_checkout_transaction(request, package_type, *, cohort_year_override=
         total_amount = Decimal('0')
         for index in range(quantity):
             if package_type == 'ALUMNI_PACK':
-                price = Decimal('200000')
+                price = Decimal('250000')
                 tshirt_size = tshirt_sizes[index]
             elif package_type == 'STUDENT_PACK':
                 price = Decimal('150000')

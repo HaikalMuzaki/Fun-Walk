@@ -111,7 +111,7 @@ class Transaction(models.Model):
 # --- 3. TIKET / PAX (Isi dari Transaksi) ---
 class Ticket(models.Model):
     PACKAGE_CHOICES = [
-        ('ALUMNI_PACK', 'Paket Premium (Rp 200.000)'),
+        ('ALUMNI_PACK', 'Paket Premium (Rp 250.000)'),
         ('STUDENT_PACK', 'Paket Mahasiswa (Rp 125.000)'),
         ('TICKET_ONLY', 'Paket Basic (Rp 50.000)'),
     ]
@@ -146,7 +146,7 @@ class Ticket(models.Model):
         # Auto-set harga default berdasarkan pilihan paket, kecuali sudah diset eksplisit.
         if not self.price:
             if self.package_type == 'ALUMNI_PACK':
-                self.price = 200000
+                self.price = 250000
             elif self.package_type == 'STUDENT_PACK':
                 self.price = 125000
             else:
