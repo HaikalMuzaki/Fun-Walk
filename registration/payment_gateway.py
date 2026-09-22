@@ -52,12 +52,14 @@ GATEWAY_TO_LOCAL_STATUS = {
     'canceled': 'FAILED',
     'voided': 'FAILED',
     'expired': 'EXPIRED',
-    'pending': 'PENDING_CONFIRMATION',
-    'initiated': 'PENDING_CONFIRMATION',
-    'processing': 'PENDING_CONFIRMATION',
-    'challenge': 'PENDING_CONFIRMATION',
-    'authentication_required': 'PENDING_CONFIRMATION',
-    'duplicate': 'PENDING_CONFIRMATION',
+    # A gateway payment can still be resumed until it is paid or expires.
+    # PENDING_CONFIRMATION is reserved for manually uploaded proof.
+    'pending': 'PENDING_PAYMENT',
+    'initiated': 'PENDING_PAYMENT',
+    'processing': 'PENDING_PAYMENT',
+    'challenge': 'PENDING_PAYMENT',
+    'authentication_required': 'PENDING_PAYMENT',
+    'duplicate': 'PENDING_PAYMENT',
 }
 
 
@@ -279,7 +281,7 @@ def normalize_gateway_status(status):
 
 
 def map_gateway_status_to_local(status):
-    return GATEWAY_TO_LOCAL_STATUS.get(normalize_gateway_status(status), 'PENDING_CONFIRMATION')
+    return GATEWAY_TO_LOCAL_STATUS.get(normalize_gateway_status(status), 'PENDING_PAYMENT')
 
 
 def is_terminal_local_status(status):

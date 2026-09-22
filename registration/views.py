@@ -859,10 +859,6 @@ def payment_page(request):
     try:
         package_label = PACKAGE_DETAILS[first_ticket.package_type]['label']
         finpay_url = initiate_payment(transaction_obj, request, package_label)
-        if transaction_obj.status == 'PENDING_PAYMENT':
-            transaction_obj.status = 'PENDING_CONFIRMATION'
-            transaction_obj.failed_at = None
-            transaction_obj.save(update_fields=['status', 'failed_at'])
         return redirect(finpay_url)
     except ValueError as error:
         logger.error(f'Finnet Gateway Error: {str(error)}')
@@ -923,10 +919,6 @@ def retry_payment(request, transaction_id):
 
             package_label = PACKAGE_DETAILS[first_ticket.package_type]['label']
             finpay_url = initiate_payment(transaction_obj, request, package_label)
-            if transaction_obj.status == 'PENDING_PAYMENT':
-                transaction_obj.status = 'PENDING_CONFIRMATION'
-                transaction_obj.failed_at = None
-                transaction_obj.save(update_fields=['status', 'failed_at'])
             return redirect(finpay_url)
 
         except Transaction.DoesNotExist:

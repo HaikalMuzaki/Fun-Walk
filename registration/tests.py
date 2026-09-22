@@ -836,10 +836,10 @@ class CheckoutPersistenceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, 'https://payment.example/retry')
         self.assertNotEqual(transaction.idempotency_key, original_key)
-        self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
+        self.assertEqual(transaction.status, 'PENDING_PAYMENT')
 
     @patch('registration.views.initiate_payment')
-    def test_confirmation_transaction_reopens_saved_payment_url(self, mocked_initiate_payment):
+    def test_pending_gateway_transaction_reopens_saved_payment_url(self, mocked_initiate_payment):
         user = CustomUser.objects.create_user(
             username='reopen@gmail.com',
             email='reopen@gmail.com',
@@ -848,7 +848,7 @@ class CheckoutPersistenceTests(TestCase):
         )
         transaction = Transaction.objects.create(
             user=user,
-            status='PENDING_CONFIRMATION',
+            status='PENDING_PAYMENT',
             payment_redirect_url='https://payment.example/choose-method',
             total_amount=Decimal('275000'),
         )
@@ -963,7 +963,7 @@ class PaymentStatusFlowTests(TestCase):
     def _create_transaction(self):
         transaction = Transaction.objects.create(
             user=self.user,
-            status='PENDING_CONFIRMATION',
+            status='PENDING_PAYMENT',
             total_amount=Decimal('275000'),
         )
         Ticket.objects.create(
@@ -976,9 +976,9 @@ class PaymentStatusFlowTests(TestCase):
         )
         return transaction
 
-    def test_gateway_callbacks_map_to_confirmation_success_and_failure(self):
+    def test_gateway_callbacks_map_to_pending_payment_success_and_failure(self):
         expected_statuses = {
-            'processing': 'PENDING_CONFIRMATION',
+            'processing': 'PENDING_PAYMENT',
             'success': 'PAID',
             'capture': 'PAID',
             'authorized': 'PAID',
@@ -1102,7 +1102,7 @@ class PaymentStatusFlowTests(TestCase):
         transaction.refresh_from_db()
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, 'https://dev-payment.ui.ac.id/pay/example')
-        self.assertEqual(transaction.status, 'PENDING_CONFIRMATION')
+        self.assertEqual(transaction.status, 'PENDING_PAYMENT')
         mocked_initiate_payment.assert_called_once()
 
 
