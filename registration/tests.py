@@ -769,6 +769,42 @@ class CheckoutPersistenceTests(TestCase):
         self.assertContains(response, 'wajib menyetujui syarat dan ketentuan')
         self.assertFalse(Transaction.objects.filter(user=user).exists())
 
+    def test_checkout_terms_checkbox_is_enabled_by_default(self):
+        alumni_user = CustomUser.objects.create_user(
+            username='alumni_terms@gmail.com',
+            email='alumni_terms@gmail.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(alumni_user)
+
+        res_alumni = self.client.get('/checkout/alumni/')
+        self.assertEqual(res_alumni.status_code, 200)
+        self.assertContains(res_alumni, 'name="accept_terms"')
+        self.assertNotContains(res_alumni, 'disabled="" name="accept_terms"')
+        self.assertNotContains(res_alumni, 'disabled name="accept_terms"')
+
+        res_non_paket = self.client.get('/checkout/tiket-saja/')
+        self.assertEqual(res_non_paket.status_code, 200)
+        self.assertContains(res_non_paket, 'name="accept_terms"')
+        self.assertNotContains(res_non_paket, 'disabled="" name="accept_terms"')
+        self.assertNotContains(res_non_paket, 'disabled name="accept_terms"')
+
+        student_user = CustomUser.objects.create_user(
+            username='2400000099',
+            email='student_terms@ui.ac.id',
+            password='Strong;123',
+            user_type='STUDENT',
+            npm='2406000099',
+        )
+        self.client.force_login(student_user)
+
+        res_mahasiswa = self.client.get('/checkout/mahasiswa/')
+        self.assertEqual(res_mahasiswa.status_code, 200)
+        self.assertContains(res_mahasiswa, 'name="accept_terms"')
+        self.assertNotContains(res_mahasiswa, 'disabled="" name="accept_terms"')
+        self.assertNotContains(res_mahasiswa, 'disabled name="accept_terms"')
+
     def test_history_expires_pending_payment_after_six_minutes(self):
         user = CustomUser.objects.create_user(
             username='expired@gmail.com',
