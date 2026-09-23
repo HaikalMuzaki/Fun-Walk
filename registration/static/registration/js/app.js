@@ -281,7 +281,6 @@
           <section class="terms-modal__dialog" aria-labelledby="terms-modal-title" aria-modal="true" role="dialog">
             <header class="terms-modal__header">
               <h2 id="terms-modal-title">Syarat dan Ketentuan Peserta</h2>
-              <button class="terms-modal__close" type="button" aria-label="Tutup">&times;</button>
             </header>
             <div class="terms-modal__body" tabindex="0">
               <h3>Peserta dan Perlengkapan</h3>
