@@ -323,7 +323,6 @@
               </ul>
             </div>
             <footer class="terms-modal__footer">
-              <button class="terms-modal__footer-close" type="button">Tutup</button>
             </footer>
           </section>
         `;
