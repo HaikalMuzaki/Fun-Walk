@@ -862,6 +862,7 @@ def payment_page(request):
         return redirect(finpay_url)
     except ValueError as error:
         logger.error(f'Finnet Gateway Error: {str(error)}')
+        _prepare_manual_transfer(transaction_obj)
         messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
 
         return redirect('manual_payment', transaction_id=transaction_obj.id)
@@ -886,9 +887,6 @@ def retry_payment(request, transaction_id):
                 return redirect('history')
 
             if transaction_obj.payment_redirect_url:
-                if transaction_obj.status == 'PENDING_PAYMENT':
-                    transaction_obj.status = 'PENDING_CONFIRMATION'
-                    transaction_obj.save(update_fields=['status'])
                 return redirect(transaction_obj.payment_redirect_url)
 
             if transaction_obj.status == 'PENDING_CONFIRMATION':
@@ -926,6 +924,7 @@ def retry_payment(request, transaction_id):
             return redirect('history')
         except ValueError as error:
             logger.error(f'Finnet Gateway Error: {str(error)}')
+            _prepare_manual_transfer(transaction_obj)
             messages.warning(request, 'Sistem pembayaran otomatis sedang mengalami gangguan. Silakan gunakan metode transfer manual sebagai alternatif.')
 
             return redirect('manual_payment', transaction_id=transaction_id)

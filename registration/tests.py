@@ -181,6 +181,34 @@ class ManualPaymentTests(TestCase):
         self.transaction.refresh_from_db()
         self.assertEqual(self.transaction.status, 'PENDING_PAYMENT')
 
+    @patch('registration.views.initiate_payment', side_effect=ValueError('Gateway response missing'))
+    def test_gateway_error_routes_to_manual_and_prevents_expiry(self, mocked_initiate_payment):
+        Ticket.objects.create(
+            transaction=self.transaction,
+            first_name='Manual',
+            last_name='Fallback',
+            package_type='TICKET_ONLY',
+            price=Decimal('50000'),
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            f'/payment/?trx={self.transaction.idempotency_key}',
+            HTTP_HOST='testserver',
+        )
+
+        self.transaction.refresh_from_db()
+        self.assertRedirects(response, f'/payment/manual/{self.transaction.id}/')
+        self.assertEqual(self.transaction.payment_channel, 'MANUAL_TRANSFER_BNI')
+        mocked_initiate_payment.assert_called_once()
+
+        Transaction.objects.filter(pk=self.transaction.pk).update(
+            created_at=timezone.now() - timedelta(minutes=7),
+        )
+        call_command('maintain_payments', '--once', '--no-reconcile')
+        self.transaction.refresh_from_db()
+        self.assertEqual(self.transaction.status, 'PENDING_PAYMENT')
+
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
 class LoginRegistrationTests(TestCase):
