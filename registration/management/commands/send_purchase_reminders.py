@@ -17,6 +17,7 @@ class Command(BaseCommand):
         recipients = (
             CustomUser.objects.filter(is_active=True)
             .exclude(is_staff=True)
+            .exclude(user_type='LECTURER')
             .exclude(email='')
             .annotate(transaction_count=Count('transactions'))
             .filter(transaction_count=0)
