@@ -43,6 +43,7 @@ PAYMENT_GATEWAY_MAINTENANCE_MESSAGE = os.environ.get(
     'PAYMENT_GATEWAY_MAINTENANCE_MESSAGE',
     'Layanan pembayaran sedang dalam pemeliharaan. Pembelian paket sementara tidak tersedia.',
 )
+PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://dn.cs.ui.ac.id').rstrip('/')
 
 ALLOWED_HOSTS = [
     host.strip()

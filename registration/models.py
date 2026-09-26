@@ -18,6 +18,11 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='ALUMNI')
     npm = models.CharField(max_length=20, blank=True, null=True, verbose_name="NPM (Khusus Mahasiswa)")
     address = models.TextField(blank=True, null=True, verbose_name="Alamat Pengiriman/Domisili")
+    purchase_reminder_sent_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Waktu Email Pengingat Pembelian Dikirim',
+    )
     
     def save(self, *args, **kwargs):
         # Intervensi otomatis: Jika user adalah superuser, paksa user_type menjadi ADMIN

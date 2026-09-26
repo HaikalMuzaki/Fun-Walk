@@ -9,6 +9,7 @@ from unittest.mock import patch
 from unittest.mock import Mock
 from decimal import Decimal
 from datetime import timedelta
+import io
 import json
 import os
 import shutil
@@ -1212,6 +1213,56 @@ class PaymentInvoiceTests(TestCase):
         self.assertEqual(mail.outbox[0].to, ['invoice@example.com'])
         self.assertIn(self.transaction.transaction_id, mail.outbox[0].subject)
         self.assertIn('Rp200.000', mail.outbox[0].body)
+
+
+@override_settings(
+    MAILERS={
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    },
+    DEFAULT_FROM_EMAIL='noreply@example.com',
+    PUBLIC_SITE_URL='https://dn.cs.ui.ac.id',
+)
+class PurchaseReminderCommandTests(TestCase):
+    def setUp(self):
+        self.untransacted_user = CustomUser.objects.create_user(
+            username='no-transaction@example.com',
+            email='no-transaction@example.com',
+            password='Strong;123',
+            first_name='Belum',
+            last_name='Pesan',
+        )
+        self.user_with_transaction = CustomUser.objects.create_user(
+            username='has-transaction@example.com',
+            email='has-transaction@example.com',
+            password='Strong;123',
+        )
+        Transaction.objects.create(
+            user=self.user_with_transaction,
+            total_amount=Decimal('50000'),
+        )
+
+    def test_dry_run_lists_only_users_without_transactions(self):
+        output = io.StringIO()
+        call_command('send_purchase_reminders', '--dry-run', stdout=output)
+
+        self.assertIn('no-transaction@example.com', output.getvalue())
+        self.assertNotIn('has-transaction@example.com', output.getvalue())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_sends_once_only_to_users_without_transactions(self):
+        call_command('send_purchase_reminders')
+
+        self.untransacted_user.refresh_from_db()
+        self.user_with_transaction.refresh_from_db()
+        self.assertIsNotNone(self.untransacted_user.purchase_reminder_sent_at)
+        self.assertIsNone(self.user_with_transaction.purchase_reminder_sent_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['no-transaction@example.com'])
+
+        call_command('send_purchase_reminders')
+        self.assertEqual(len(mail.outbox), 1)
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
