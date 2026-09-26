@@ -42,7 +42,11 @@ def send_payment_invoice(transaction_obj):
         'ticket_count': len(tickets),
         'packages': ', '.join(ticket.get_package_type_display() for ticket in tickets) or '-',
         'total_amount': format_rupiah(transaction_obj.total_amount),
-        'paid_at': timezone.localtime(transaction_obj.paid_at).strftime('%d %B %Y, %H:%M WIB'),
+        # Older PAID records may predate the paid_at field. Keep them eligible
+        # for a one-time invoice backfill instead of failing the whole batch.
+        'paid_at': timezone.localtime(
+            transaction_obj.paid_at or transaction_obj.created_at
+        ).strftime('%d %B %Y, %H:%M WIB'),
         'payment_method': transaction_obj.payment_channel or transaction_obj.payment_type or 'Payment Gateway',
     }
     message = EmailMultiAlternatives(

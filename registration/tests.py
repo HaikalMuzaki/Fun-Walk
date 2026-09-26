@@ -1214,6 +1214,64 @@ class PaymentInvoiceTests(TestCase):
         self.assertIn(self.transaction.transaction_id, mail.outbox[0].subject)
         self.assertIn('Rp200.000', mail.outbox[0].body)
 
+    def test_backfill_uses_created_time_when_old_paid_transaction_has_no_paid_at(self):
+        self.transaction.paid_at = None
+        self.transaction.save(update_fields=['paid_at'])
+
+        self.assertTrue(send_payment_invoice(self.transaction))
+        self.assertEqual(len(mail.outbox), 1)
+
+
+@override_settings(
+    MAILERS={
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    },
+    DEFAULT_FROM_EMAIL='noreply@example.com',
+)
+class MissingInvoiceCommandTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username='missing-invoice@example.com',
+            email='missing-invoice@example.com',
+            password='Strong;123',
+        )
+        self.missing_invoice = Transaction.objects.create(
+            user=self.user,
+            status='PAID',
+            total_amount=Decimal('50000'),
+        )
+        self.sent_invoice = Transaction.objects.create(
+            user=self.user,
+            status='PAID',
+            paid_at=timezone.now(),
+            invoice_sent_at=timezone.now(),
+            total_amount=Decimal('50000'),
+        )
+        self.unpaid_transaction = Transaction.objects.create(
+            user=self.user,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('50000'),
+        )
+
+    def test_dry_run_lists_only_paid_transactions_without_invoice(self):
+        output = io.StringIO()
+        call_command('send_missing_invoices', '--dry-run', stdout=output)
+
+        self.assertIn(self.missing_invoice.transaction_id, output.getvalue())
+        self.assertNotIn(self.sent_invoice.transaction_id, output.getvalue())
+        self.assertNotIn(self.unpaid_transaction.transaction_id, output.getvalue())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_sends_only_missing_paid_invoices(self):
+        call_command('send_missing_invoices')
+
+        self.missing_invoice.refresh_from_db()
+        self.assertIsNotNone(self.missing_invoice.invoice_sent_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['missing-invoice@example.com'])
+
 
 @override_settings(
     MAILERS={
