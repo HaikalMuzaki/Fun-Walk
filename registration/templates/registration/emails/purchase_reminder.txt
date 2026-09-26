@@ -1,8 +1,7 @@
 Halo {{ customer_name }},
 
-Anda sudah berhasil membuat akun untuk Dies Natalis ke-40 Fasilkom UI, tetapi belum memiliki pesanan.
+{{ message }}
 
-Silakan pilih paket dan lengkapi pendaftaran melalui:
-{{ purchase_url }}
+{{ action_url }}
 
 Sampai jumpa di acara!

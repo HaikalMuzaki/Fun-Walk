@@ -5,8 +5,8 @@
     <div style="background:#f9df4d;padding:24px 32px;font-size:22px;font-weight:700;">Dies Natalis ke-40 Fasilkom UI</div>
     <div style="padding:32px;">
       <h1 style="margin:0 0 12px;font-size:24px;">Lengkapi Pendaftaran Anda</h1>
-      <p style="margin:0 0 24px;line-height:1.6;">Halo {{ customer_name }}, Anda sudah berhasil membuat akun, tetapi belum memiliki pesanan. Pilih paket untuk melanjutkan pendaftaran.</p>
-      <a href="{{ purchase_url }}" style="display:inline-block;background:#f9df4d;color:#1b1b1b;padding:14px 22px;border-radius:8px;font-weight:700;text-decoration:none;">Pilih Paket</a>
+      <p style="margin:0 0 24px;line-height:1.6;">Halo {{ customer_name }}, {{ message }}</p>
+      <a href="{{ action_url }}" style="display:inline-block;background:#f9df4d;color:#1b1b1b;padding:14px 22px;border-radius:8px;font-weight:700;text-decoration:none;">{{ action_label }}</a>
     </div>
   </div>
 </body>

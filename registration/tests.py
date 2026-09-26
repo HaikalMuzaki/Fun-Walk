@@ -1298,6 +1298,27 @@ class PurchaseReminderCommandTests(TestCase):
         )
         Transaction.objects.create(
             user=self.user_with_transaction,
+            status='PENDING_PAYMENT',
+            total_amount=Decimal('50000'),
+        )
+        self.paid_user = CustomUser.objects.create_user(
+            username='paid@example.com',
+            email='paid@example.com',
+            password='Strong;123',
+        )
+        Transaction.objects.create(
+            user=self.paid_user,
+            status='PAID',
+            total_amount=Decimal('50000'),
+        )
+        self.manual_review_user = CustomUser.objects.create_user(
+            username='manual-review@example.com',
+            email='manual-review@example.com',
+            password='Strong;123',
+        )
+        Transaction.objects.create(
+            user=self.manual_review_user,
+            status='PENDING_CONFIRMATION',
             total_amount=Decimal('50000'),
         )
         self.lecturer_user = CustomUser.objects.create_user(
@@ -1309,27 +1330,32 @@ class PurchaseReminderCommandTests(TestCase):
             last_name='Fasilkom',
         )
 
-    def test_dry_run_lists_only_users_without_transactions(self):
+    def test_dry_run_lists_users_without_completed_payment(self):
         output = io.StringIO()
         call_command('send_purchase_reminders', '--dry-run', stdout=output)
 
         self.assertIn('no-transaction@example.com', output.getvalue())
-        self.assertNotIn('has-transaction@example.com', output.getvalue())
+        self.assertIn('has-transaction@example.com', output.getvalue())
+        self.assertNotIn('paid@example.com', output.getvalue())
+        self.assertNotIn('manual-review@example.com', output.getvalue())
         self.assertNotIn('lecturer@example.com', output.getvalue())
         self.assertEqual(len(mail.outbox), 0)
 
-    def test_sends_once_only_to_users_without_transactions(self):
+    def test_sends_once_only_to_users_without_completed_payment(self):
         call_command('send_purchase_reminders')
 
         self.untransacted_user.refresh_from_db()
         self.user_with_transaction.refresh_from_db()
         self.assertIsNotNone(self.untransacted_user.purchase_reminder_sent_at)
-        self.assertIsNone(self.user_with_transaction.purchase_reminder_sent_at)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ['no-transaction@example.com'])
+        self.assertIsNotNone(self.user_with_transaction.purchase_reminder_sent_at)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual({message.to[0] for message in mail.outbox}, {
+            'no-transaction@example.com',
+            'has-transaction@example.com',
+        })
 
         call_command('send_purchase_reminders')
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
 
     def test_csv_export_marks_lecturers_for_review(self):
         output = io.StringIO()
@@ -1338,7 +1364,9 @@ class PurchaseReminderCommandTests(TestCase):
         self.assertIn('email,nama,jenis_akun,dosen', output.getvalue())
         self.assertIn('no-transaction@example.com,Belum Pesan,Mahasiswa/Alumni,Tidak', output.getvalue())
         self.assertIn('lecturer@example.com,Dosen Fasilkom,Dosen,Ya', output.getvalue())
-        self.assertNotIn('has-transaction@example.com', output.getvalue())
+        self.assertIn('has-transaction@example.com', output.getvalue())
+        self.assertNotIn('paid@example.com', output.getvalue())
+        self.assertNotIn('manual-review@example.com', output.getvalue())
 
 
 @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])

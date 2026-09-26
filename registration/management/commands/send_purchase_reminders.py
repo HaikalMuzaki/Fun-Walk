@@ -1,12 +1,10 @@
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 
-from registration.models import CustomUser
-from registration.reminders import send_purchase_reminder
+from registration.reminders import get_purchase_reminder_recipients, send_purchase_reminder
 
 
 class Command(BaseCommand):
-    help = 'Email active users who have registered but have not created any transaction.'
+    help = 'Email eligible users who have no completed payment or manual review in progress.'
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true', help='Show recipients without sending email.')
@@ -14,17 +12,9 @@ class Command(BaseCommand):
         parser.add_argument('--limit', type=int, help='Maximum number of recipients to process.')
 
     def handle(self, *args, **options):
-        recipients = (
-            CustomUser.objects.filter(is_active=True)
-            .exclude(is_staff=True)
-            .exclude(user_type='LECTURER')
-            .exclude(email='')
-            .annotate(transaction_count=Count('transactions'))
-            .filter(transaction_count=0)
-            .order_by('id')
+        recipients = get_purchase_reminder_recipients(include_sent=options['resend']).exclude(
+            user_type='LECTURER'
         )
-        if not options['resend']:
-            recipients = recipients.filter(purchase_reminder_sent_at__isnull=True)
         if options['limit'] is not None:
             recipients = recipients[:max(0, options['limit'])]
 

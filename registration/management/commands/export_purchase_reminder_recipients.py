@@ -1,13 +1,12 @@
 import csv
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 
-from registration.models import CustomUser
+from registration.reminders import get_purchase_reminder_recipients
 
 
 class Command(BaseCommand):
-    help = 'Export registered users without transactions as CSV for purchase reminder review.'
+    help = 'Export users eligible for a purchase reminder as CSV for review.'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -17,16 +16,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        recipients = (
-            CustomUser.objects.filter(is_active=True)
-            .exclude(is_staff=True)
-            .exclude(email='')
-            .annotate(transaction_count=Count('transactions'))
-            .filter(transaction_count=0)
-            .order_by('email')
-        )
-        if not options['include_sent']:
-            recipients = recipients.filter(purchase_reminder_sent_at__isnull=True)
+        recipients = get_purchase_reminder_recipients(
+            include_sent=options['include_sent']
+        ).order_by('email')
 
         writer = csv.writer(self.stdout)
         writer.writerow(['email', 'nama', 'jenis_akun', 'dosen'])
