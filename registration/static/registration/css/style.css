@@ -251,12 +251,81 @@ body {
   width: 100%;
 }
 
-.dies-description {
-  max-width: 62rem;
-  margin-bottom: 1.25rem;
+.home-page .dies-description {
+  max-width: 17rem;
+  margin-top: 1rem;
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.5;
+}
+
+.registration-countdown {
+  margin-bottom: 1.15rem;
+}
+
+.registration-countdown h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.countdown-timer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  max-width: 34rem;
+}
+
+.countdown-unit {
+  display: grid;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.countdown-label {
+  color: #39434a;
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.06rem;
+  text-transform: uppercase;
+}
+
+.countdown-digit {
+  position: relative;
+  display: grid;
+  min-height: 4.25rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #171c20;
+  border-radius: 0.2rem;
+  background: linear-gradient(145deg, #354047 0%, #1b2227 48%, #11171b 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 16%), inset 0 -0.35rem 0.6rem rgb(0 0 0 / 42%), 0 0.16rem 0.3rem rgb(0 0 0 / 24%);
+  color: #f5f5f2;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 3.15rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-shadow: 0 0.12rem 0.12rem rgb(0 0 0 / 70%);
+}
+
+.countdown-digit::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgb(0 0 0 / 65%);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
+  content: "";
+}
+
+.countdown-closed-message {
+  margin: 0.7rem 0 0;
+  color: #b82323;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .event-list {
@@ -1119,9 +1188,13 @@ body {
     font-size: 3.5rem;
   }
 
-  .dies-description {
-    margin-bottom: 2rem;
+  .home-page .dies-description {
+    margin-top: 1.5rem;
     font-size: 1.1rem;
+  }
+
+  .registration-countdown {
+    margin-bottom: 1.8rem;
   }
 
   .event-list {
@@ -1272,9 +1345,13 @@ body {
     font-size: 2.35rem;
   }
 
-  .dies-description {
-    margin-bottom: 1.5rem;
+  .home-page .dies-description {
+    margin-top: 1rem;
     font-size: 0.82rem;
+  }
+
+  .registration-countdown h2 {
+    font-size: 1.35rem;
   }
 
   .event-list {
@@ -1339,6 +1416,14 @@ body {
     line-height: 1.2;
   }
 
+  .home-page .dies-description {
+    max-width: 38rem;
+  }
+
+  .registration-countdown h2 {
+    font-size: 1.45rem;
+  }
+
   .event-list {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1397,6 +1482,24 @@ body {
 
   .dies-title h1 {
     font-size: 2.3rem;
+  }
+
+  .registration-countdown h2 {
+    font-size: 1.25rem;
+  }
+
+  .countdown-timer {
+    gap: 0.35rem;
+  }
+
+  .countdown-label {
+    font-size: 0.48rem;
+    letter-spacing: 0.03rem;
+  }
+
+  .countdown-digit {
+    min-height: 3.2rem;
+    font-size: 2.25rem;
   }
 
   .event-list {

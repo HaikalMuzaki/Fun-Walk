@@ -97,6 +97,47 @@
 
   const formatRupiah = (amount) => `Rp${formatter.format(amount)}`;
 
+  const countdown = document.querySelector('[data-countdown-end]');
+  if (countdown) {
+    const deadline = new Date(countdown.dataset.countdownEnd).getTime();
+    const days = countdown.querySelector('[data-countdown-days]');
+    const hours = countdown.querySelector('[data-countdown-hours]');
+    const minutes = countdown.querySelector('[data-countdown-minutes]');
+    const seconds = countdown.querySelector('[data-countdown-seconds]');
+    const closedMessage = countdown.querySelector('.countdown-closed-message');
+    let timerId;
+
+    const setCountdownValue = (element, value) => {
+      if (element) {
+        element.textContent = String(value).padStart(2, '0');
+      }
+    };
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, deadline - Date.now());
+      const totalSeconds = Math.floor(remaining / 1000);
+      const dayCount = Math.floor(totalSeconds / 86400);
+      const hourCount = Math.floor((totalSeconds % 86400) / 3600);
+      const minuteCount = Math.floor((totalSeconds % 3600) / 60);
+      const secondCount = totalSeconds % 60;
+
+      setCountdownValue(days, dayCount);
+      setCountdownValue(hours, hourCount);
+      setCountdownValue(minutes, minuteCount);
+      setCountdownValue(seconds, secondCount);
+
+      if (remaining === 0) {
+        if (closedMessage) {
+          closedMessage.hidden = false;
+        }
+        window.clearInterval(timerId);
+      }
+    };
+
+    updateCountdown();
+    timerId = window.setInterval(updateCountdown, 1000);
+  }
+
   if (flashMessage) {
     window.setTimeout(() => {
       flashMessage.classList.add('is-hiding');
