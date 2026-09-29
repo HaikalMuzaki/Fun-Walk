@@ -328,6 +328,16 @@ body {
   font-weight: 600;
 }
 
+@media (min-width: 769px) {
+  .registration-countdown {
+    margin-left: clamp(1rem, 2vw, 2rem);
+  }
+
+  .event-list {
+    margin-top: 2rem;
+  }
+}
+
 .event-list {
   width: 100%;
   display: grid;
