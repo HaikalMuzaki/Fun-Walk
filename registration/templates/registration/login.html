@@ -177,7 +177,9 @@
            Rp250.000
           </strong>
          </div>
-         {% if payment_gateway_maintenance and not manual_payment_enabled %}
+         {% if not premium_package_enabled %}
+          <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Paket Premium Ditutup</span>
+         {% elif payment_gateway_maintenance and not manual_payment_enabled %}
           <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
          {% else %}
           <a class="package-button" href="{% url 'checkout_alumni' %}">

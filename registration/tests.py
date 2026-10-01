@@ -64,6 +64,7 @@ class KeycloakAccountMatchingTests(TestCase):
 @override_settings(
     PAYMENT_GATEWAY_MAINTENANCE=True,
     MANUAL_PAYMENT_ENABLED=False,
+    PREMIUM_PACKAGE_ENABLED=True,
     PAYMENT_GATEWAY_MAINTENANCE_MESSAGE='Layanan pembayaran sedang dalam pemeliharaan.',
 )
 class PaymentGatewayMaintenanceTests(TestCase):
@@ -88,6 +89,26 @@ class PaymentGatewayMaintenanceTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Transaction.objects.count(), 0)
+
+
+@override_settings(PREMIUM_PACKAGE_ENABLED=False)
+class PremiumPackageAvailabilityTests(TestCase):
+    def test_premium_package_button_and_checkout_are_disabled(self):
+        user = CustomUser.objects.create_user(
+            username='premium-closed@example.com',
+            email='premium-closed@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        index_response = self.client.get('/', HTTP_HOST='127.0.0.1')
+        self.assertContains(index_response, 'Pembelian Paket Premium Ditutup')
+        self.assertNotContains(index_response, 'href="/checkout/alumni/"')
+
+        checkout_response = self.client.get('/checkout/alumni/', HTTP_HOST='127.0.0.1')
+        self.assertRedirects(checkout_response, '/')
+        self.assertFalse(Transaction.objects.filter(user=user).exists())
 
 
 class ManualPaymentTests(TestCase):
@@ -461,7 +482,10 @@ class SSOLoginTests(TestCase):
         self.assertContains(response, 'Koneksi ke server SSO UI gagal atau respons CAS2 tidak valid')
 
 
-@override_settings(ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'])
+@override_settings(
+    ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'],
+    PREMIUM_PACKAGE_ENABLED=True,
+)
 class CheckoutPersistenceTests(TestCase):
     @patch('registration.views.initiate_payment', return_value='https://payment.example/redirect')
     def test_checkout_alumni_saves_whatsapp_and_cohort_year_to_transaction(self, mocked_initiate_payment):

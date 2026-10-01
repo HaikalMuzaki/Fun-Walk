@@ -21,8 +21,8 @@
       </p>
     </div>
     <div class="dies-content">
-      <section class="registration-countdown" aria-labelledby="countdown-title" data-countdown-end="2026-09-30T23:59:59+07:00">
-        <h2 id="countdown-title">Countdown Closing FunWalk Registration</h2>
+      <section class="registration-countdown" aria-labelledby="countdown-title" data-countdown-end="2026-10-23T23:59:59+07:00">
+        <h2 id="countdown-title">Countdown Closing Paket Basic</h2>
         <div class="countdown-timer" aria-live="polite">
           <div class="countdown-unit">
             <span class="countdown-label">Days</span>
@@ -159,7 +159,9 @@
             </ul>
             <strong class="package-price">Rp250.000</strong>
           </div>
-          {% if payment_gateway_maintenance and not manual_payment_enabled %}
+          {% if not premium_package_enabled %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Paket Premium Ditutup</span>
+          {% elif payment_gateway_maintenance and not manual_payment_enabled %}
             <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
           {% else %}
             <a class="package-button" href="{% url 'checkout_alumni' %}">Beli Paket Premium</a>

@@ -704,6 +704,10 @@ def sso_login_callback(request):
 
 @login_required
 def checkout_alumni(request):
+    if not settings.PREMIUM_PACKAGE_ENABLED:
+        messages.warning(request, 'Pembelian Paket Premium sedang ditutup.')
+        return redirect('index')
+
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'ALUMNI_PACK')
