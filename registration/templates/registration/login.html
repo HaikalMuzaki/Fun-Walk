@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <link href="{% static 'registration/css/style.css' %}" rel="stylesheet"/>
+  <link href="{% static 'registration/css/style.css' %}?v=20260930-countdown-bluered" rel="stylesheet"/>
  </head>
  <body>
   <header class="header">
@@ -58,11 +58,38 @@
         <br/>
         UI KE-40
        </h1>
-      </div>
-      <div class="dies-content">
        <p class="dies-description">
         Dalam rangka memperingati Dies Natalis ke-40 Fasilkom UI, kami menyelenggarakan acara yang dapat diikuti, baik oleh mahasiswa Fasilkom UI maupun alumni Fasilkom UI. Rangkaian acara ini terdiri atas:
        </p>
+      </div>
+      <div class="dies-content">
+       <section class="registration-countdown" aria-labelledby="login-countdown-title" data-countdown-end="2026-10-23T23:59:59+07:00">
+        <div class="countdown-content">
+         <div class="countdown-info">
+          <h2 id="login-countdown-title" class="countdown-title">Closing Paket Basic</h2>
+          <p class="countdown-subtitle">Don't miss your chance to join the celebration!</p>
+         </div>
+         <div class="countdown-timer" aria-live="off">
+          <div class="countdown-unit">
+           <strong class="countdown-digit" data-countdown-days>00</strong>
+           <span class="countdown-label">DAYS</span>
+          </div>
+          <div class="countdown-unit">
+           <strong class="countdown-digit" data-countdown-hours>00</strong>
+           <span class="countdown-label">HOURS</span>
+          </div>
+          <div class="countdown-unit">
+           <strong class="countdown-digit" data-countdown-minutes>00</strong>
+           <span class="countdown-label">MINUTES</span>
+          </div>
+          <div class="countdown-unit">
+           <strong class="countdown-digit" data-countdown-seconds>00</strong>
+           <span class="countdown-label">SECONDS</span>
+          </div>
+         </div>
+        </div>
+        <p class="countdown-closed-message" hidden>Pendaftaran telah ditutup.</p>
+       </section>
        <div class="event-list">
         <div class="event-card walk">
          <div class="event-name">
@@ -76,16 +103,16 @@
           Games
          </div>
         </div>
-        <div class="event-card health">
+        <div class="event-card muskan">
          <div class="event-name">
-          Check
+          Musik Kantin
           <br/>
-          Kesehatan
+          Reborn
          </div>
         </div>
-        <div class="event-card star">
+        <div class="event-card doorprize">
          <div class="event-name">
-          Guest Star
+          Doorprize
          </div>
         </div>
        </div>
@@ -324,6 +351,7 @@
   </main>
   <script src="{% static 'registration/js/app.js' %}?v=20260923-terms">
   </script>
+  <script src="{% static 'registration/js/app.js' %}?v=20260929-countdown"></script>
   <script>
    const passwordInput = document.querySelector('#password');
    const passwordToggle = document.querySelector('#password-toggle');
