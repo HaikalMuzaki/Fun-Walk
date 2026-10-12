@@ -236,13 +236,15 @@
            </strong>
           </div>
          </div>
-         {% if payment_gateway_maintenance and not manual_payment_enabled %}
-          <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
-         {% else %}
-          <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
-            Beli Paket Mahasiswa Aktif
-          </a>
-         {% endif %}
+          {% if not student_package_enabled %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Paket Mahasiswa Ditutup</span>
+          {% elif payment_gateway_maintenance and not manual_payment_enabled %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
+          {% else %}
+            <a class="package-button" href="{% url 'checkout_mahasiswa' %}">
+              Beli Paket Mahasiswa Aktif
+            </a>
+          {% endif %}
         </div>
         <div class="package-item">
          <div class="package-info">

@@ -724,6 +724,10 @@ def checkout_alumni(request):
 
 @login_required
 def checkout_mahasiswa(request):
+    if not settings.STUDENT_PACKAGE_ENABLED:
+        messages.warning(request, 'Pembelian Paket Mahasiswa Aktif sedang ditutup.')
+        return redirect('index')
+
     if not _is_student_sso_user(request.user):
         messages.error(
             request,
