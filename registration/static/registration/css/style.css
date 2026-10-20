@@ -359,6 +359,68 @@ body {
   text-align: center;
 }
 
+.closing-banner {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 2.25rem;
+  border-radius: 1.25rem;
+  background: radial-gradient(circle at 80% 35%, #0c3e80 0%, #04275d 45%, #021a40 90%);
+  box-shadow: 0 14px 34px -8px rgba(2, 22, 60, 0.4), 0 4px 14px -2px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.closing-banner-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
+  border-radius: 50%;
+  background: rgba(225, 29, 72, 0.16);
+  flex-shrink: 0;
+}
+
+.closing-banner-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: block;
+}
+
+.closing-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.closing-banner-title {
+  margin: 0;
+  color: #ffffff;
+  font-family: "Poppins", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.closing-banner-subtitle {
+  margin: 0;
+  color: #8fa8cc;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.closing-banner-highlight {
+  color: #ff2e4d;
+  font-weight: 700;
+}
+
 @media (min-width: 769px) {
   .event-list {
     margin-top: 1.5rem;
@@ -707,6 +769,11 @@ body {
   background: #a1a1aa;
   color: #f4f4f5;
   cursor: not-allowed;
+}
+
+.package-button--disabled:hover {
+  opacity: 1;
+  transform: none;
 }
 
 /* --- UPGRADE FOOTER --- */
@@ -1468,6 +1535,31 @@ body {
     padding: 1.5rem 1.25rem;
   }
 
+  .closing-banner {
+    padding: 1.25rem 1.25rem;
+    gap: 1rem;
+    border-radius: 1rem;
+  }
+
+  .closing-banner-badge {
+    width: 3rem;
+    height: 3rem;
+    min-width: 3rem;
+  }
+
+  .closing-banner-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .closing-banner-title {
+    font-size: 1.25rem;
+  }
+
+  .closing-banner-subtitle {
+    font-size: 0.85rem;
+  }
+
   .countdown-content {
     flex-direction: column;
     align-items: center;
@@ -1559,6 +1651,25 @@ body {
   .registration-countdown {
     padding: 1.25rem 0.85rem;
     border-radius: 1rem;
+  }
+
+  .closing-banner {
+    padding: 1rem 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .closing-banner-badge {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .closing-banner-title {
+    font-size: 1.05rem;
+  }
+
+  .closing-banner-subtitle {
+    font-size: 0.8rem;
   }
 
   .registration-countdown h2,

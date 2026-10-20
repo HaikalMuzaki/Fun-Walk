@@ -111,6 +111,33 @@ class PremiumPackageAvailabilityTests(TestCase):
         self.assertFalse(Transaction.objects.filter(user=user).exists())
 
 
+@override_settings(BASIC_PACKAGE_ENABLED=False)
+class BasicPackageAvailabilityTests(TestCase):
+    def test_basic_package_button_and_checkout_are_disabled(self):
+        user = CustomUser.objects.create_user(
+            username='basic-closed@example.com',
+            email='basic-closed@example.com',
+            password='Strong;123',
+            user_type='ALUMNI',
+        )
+        self.client.force_login(user)
+
+        index_response = self.client.get('/', HTTP_HOST='127.0.0.1')
+        self.assertContains(index_response, 'Pembelian Paket Basic Ditutup')
+        self.assertNotContains(index_response, 'href="/checkout/tiket-saja/"')
+
+        checkout_response = self.client.get('/checkout/tiket-saja/', HTTP_HOST='127.0.0.1')
+        self.assertRedirects(checkout_response, '/')
+        self.assertFalse(Transaction.objects.filter(user=user).exists())
+
+    def test_closing_banner_is_displayed(self):
+        response = self.client.get('/', HTTP_HOST='127.0.0.1')
+        self.assertContains(response, 'closing-banner')
+        self.assertContains(response, 'Masa Pembelian Ticket Sudah Ditutup.')
+        self.assertContains(response, 'Terima kasih atas antusiasme nya!')
+        self.assertContains(response, 'Dies Natalis Fasilkom UI Ke-40!')
+
+
 class ManualPaymentTests(TestCase):
     def setUp(self):
         self.temp_media_root = tempfile.mkdtemp()
@@ -485,6 +512,8 @@ class SSOLoginTests(TestCase):
 @override_settings(
     ALLOWED_HOSTS=['127.0.0.1', 'testserver', 'localhost'],
     PREMIUM_PACKAGE_ENABLED=True,
+    STUDENT_PACKAGE_ENABLED=True,
+    BASIC_PACKAGE_ENABLED=True,
 )
 class CheckoutPersistenceTests(TestCase):
     @patch('registration.views.initiate_payment', return_value='https://payment.example/redirect')

@@ -21,32 +21,17 @@
       </p>
     </div>
     <div class="dies-content">
-      <section class="registration-countdown" aria-labelledby="countdown-title" data-countdown-end="2026-10-23T23:59:59+07:00">
-        <div class="countdown-content">
-          <div class="countdown-info">
-            <h2 id="countdown-title" class="countdown-title">Closing Paket Basic</h2>
-            <p class="countdown-subtitle">Don't miss your chance to join the celebration!</p>
-          </div>
-          <div class="countdown-timer" aria-live="polite">
-            <div class="countdown-unit">
-              <strong class="countdown-digit" data-countdown-days>00</strong>
-              <span class="countdown-label">DAYS</span>
-            </div>
-            <div class="countdown-unit">
-              <strong class="countdown-digit" data-countdown-hours>00</strong>
-              <span class="countdown-label">HOURS</span>
-            </div>
-            <div class="countdown-unit">
-              <strong class="countdown-digit" data-countdown-minutes>00</strong>
-              <span class="countdown-label">MINUTES</span>
-            </div>
-            <div class="countdown-unit">
-              <strong class="countdown-digit" data-countdown-seconds>00</strong>
-              <span class="countdown-label">SECONDS</span>
-            </div>
-          </div>
+      <section class="closing-banner" aria-label="Masa Pembelian Ticket Sudah Ditutup">
+        <div class="closing-banner-badge" aria-hidden="true">
+          <svg class="closing-banner-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6C3 4.89543 3.89543 4 5 4H19C20.1046 4 21 4.89543 21 6V9.5C19.6 9.5 18.5 10.6 18.5 12C18.5 13.4 19.6 14.5 21 14.5V18C21 19.1046 20.1046 20 19 20H5C3.89543 20 3 19.1046 3 18V14.5C4.4 14.5 5.5 13.4 5.5 12C5.5 10.6 4.4 9.5 3 9.5V6Z" stroke="#ff3b53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="8" y="9" width="8" height="6" rx="1.5" stroke="#ff3b53" stroke-width="1.8"/>
+          </svg>
         </div>
-        <p class="countdown-closed-message" hidden>Pendaftaran telah ditutup.</p>
+        <div class="closing-banner-content">
+          <h2 class="closing-banner-title">Masa Pembelian Ticket Sudah Ditutup.</h2>
+          <p class="closing-banner-subtitle">Terima kasih atas antusiasme nya! See You at <span class="closing-banner-highlight">Dies Natalis Fasilkom UI Ke-40!</span></p>
+        </div>
       </section>
       <div class="event-list">
         <div class="event-card walk">
@@ -213,7 +198,9 @@
             </ul>
             <strong class="package-price">Rp50.000</strong>
           </div>
-          {% if payment_gateway_maintenance and not manual_payment_enabled %}
+          {% if not basic_package_enabled %}
+            <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Paket Basic Ditutup</span>
+          {% elif payment_gateway_maintenance and not manual_payment_enabled %}
             <span class="package-button package-button--disabled" aria-disabled="true">Pembelian Sementara Ditutup</span>
           {% else %}
             <a class="package-button" href="{% url 'checkout_non_paket' %}">Beli Paket Basic</a>

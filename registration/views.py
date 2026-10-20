@@ -776,6 +776,10 @@ def checkout_mahasiswa(request):
 
 @login_required
 def checkout_non_paket(request):
+    if not settings.BASIC_PACKAGE_ENABLED:
+        messages.warning(request, 'Pembelian Paket Basic sedang ditutup.')
+        return redirect('index')
+
     if request.method == 'POST':
         try:
             _create_checkout_transaction(request, 'TICKET_ONLY')

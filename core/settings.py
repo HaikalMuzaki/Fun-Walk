@@ -41,6 +41,7 @@ PAYMENT_GATEWAY_MAINTENANCE = os.environ.get('PAYMENT_GATEWAY_MAINTENANCE', 'fal
 MANUAL_PAYMENT_ENABLED = os.environ.get('MANUAL_PAYMENT_ENABLED', 'false').lower() == 'true'
 PREMIUM_PACKAGE_ENABLED = os.environ.get('PREMIUM_PACKAGE_ENABLED', 'false').lower() == 'true'
 STUDENT_PACKAGE_ENABLED = os.environ.get('STUDENT_PACKAGE_ENABLED', 'false').lower() == 'true'
+BASIC_PACKAGE_ENABLED = os.environ.get('BASIC_PACKAGE_ENABLED', 'false').lower() == 'true'
 PAYMENT_GATEWAY_MAINTENANCE_MESSAGE = os.environ.get(
     'PAYMENT_GATEWAY_MAINTENANCE_MESSAGE',
     'Layanan pembayaran sedang dalam pemeliharaan. Pembelian paket sementara tidak tersedia.',

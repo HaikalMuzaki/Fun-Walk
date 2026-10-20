@@ -8,4 +8,5 @@ def payment_gateway_maintenance(request):
         'manual_payment_enabled': settings.MANUAL_PAYMENT_ENABLED,
         'premium_package_enabled': settings.PREMIUM_PACKAGE_ENABLED,
         'student_package_enabled': settings.STUDENT_PACKAGE_ENABLED,
+        'basic_package_enabled': settings.BASIC_PACKAGE_ENABLED,
     }
